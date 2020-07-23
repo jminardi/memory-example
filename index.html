@@ -1,0 +1,1068 @@
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/bootstrap-vue@2.13.1/dist/bootstrap-vue.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intro.js/2.9.3/introjs.min.css">
+  </head>
+<body>
+  <div id="app">
+
+    <div style="position: relative;">
+
+      <b-button block  data-step="3" data-intro="Click here to show a 3D view of your current design." id="visualize-button" :variant="visualizeOverlay ? 'secondary' : 'outline-secondary'" :class="{'white-btn': !visualizeOverlay}" v-on:click="toggleVisualizeOverlay({moveUp:true})"><i class="fas fa-2x fa-eye-slash" v-if="!visualizeOverlay"></i><i class="fas fa-2x fa-eye" v-else></i></b-button>
+
+      <div id="design-canvas" style="position: absolute; top: -100px; left: 0"></div>
+
+      <div><canvas id="c" :width="canvasWidth" :height="canvasHeight" :class="{border: debug}"></canvas></div>
+
+      <div id="three-js" v-show="visualizeOverlay!==null" style="position:absolute;bottom:0px;"> </div>
+    
+    </div>
+
+    <div id="textures" v-show="debug">
+      <canvas id="copy-canvas" :width="clipRectWidth*devicePixelRatio" :height="textureHeight*devicePixelRatio"></canvas>
+      <canvas id="displacement-canvas" :width="clipRectWidth*textureScale" :height="textureHeight*textureScale"></canvas>
+      <canvas id="roughness-canvas" :width="clipRectWidth*textureScale" :height="textureHeight*textureScale"></canvas>
+      <canvas id="normal-canvas" :width="clipRectWidth*devicePixelRatio*textureScale" :height="textureHeight*devicePixelRatio*textureScale"></canvas>
+    </div>
+
+  </div>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/3.6.2/fabric.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/imagetracerjs@1.2.6/imagetracer_v1.2.6.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/opentype.js@latest/dist/opentype.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vue@2.6.11/dist/vue.min.js"></script>
+<!-- <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script> -->
+<script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/bootstrap-vue@2.13.1/dist/bootstrap-vue.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/intro.js/2.9.3/intro.min.js"></script>
+
+<script src="build/three.min.js"></script>
+<script src="js/OrbitControls.js"></script>
+<script src="js/OBJLoader.js"></script>
+<script src="js/GLTFExporter.js"></script>
+<script src="js/model-volume.js"></script>
+<script src="js/filters.js"></script>
+<!-- <script src="js/imagetracer.js"></script> -->
+
+
+<style>
+  html {
+    scroll-behavior: smooth;
+  }
+  canvas:focus {
+    outline: none;
+  }
+  #control-buttons {
+    width: 63px;
+    position: absolute;
+    top: 7px;
+    left: 7px;
+  }
+  .white-btn {
+    background-color: white;
+  }
+  .white-btn:hover {
+    background-color: "#343a40";
+  }
+  .btn {
+    box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.2), 0 2px 5px 0 rgba(0, 0, 0, 0.19);
+  }
+  #checkout-sidebar .card, .globalContent {
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19); 
+    border-radius: 0;
+  }
+  #imageSettings {
+    z-index: 1000;
+  }
+  .payment-link {
+    color: white;
+  }
+  .fade-enter-active, .fade-leave-active {
+    transition: opacity .5s;
+  }
+  .fade-enter, .fade-leave-to /* .fade-leave-active below version 2.1.8 */ {
+    opacity: 0;
+  }
+  .carousel img {
+    min-height: 160px;
+    object-fit:cover;
+}
+</style>
+
+
+<script type="text/javascript">
+
+"use strict";
+
+var fonts = [
+    { value: "https://cdn.rawgit.com/google/fonts/278aaad9/ofl/markoone/MarkoOne-Regular.ttf", text: 'Marko One' },
+    { value: "https://cdn.rawgit.com/google/fonts/278aaad9/ofl/kanit/Kanit-Bold.ttf", text: 'Kanit' },
+    { value: "https://cdn.rawgit.com/google/fonts/278aaad9/ofl/breeserif/BreeSerif-Regular.ttf", text: 'Bree Serif' },
+    { value: "https://cdn.rawgit.com/google/fonts/278aaad9/ofl/arya/Arya-Bold.ttf", text: 'Arya' },
+    { value: "https://cdn.rawgit.com/google/fonts/278aaad9/ofl/pacifico/Pacifico-Regular.ttf", text: 'Pacifico' },
+    { value: "https://cdn.rawgit.com/google/fonts/278aaad9/ofl/yesteryear/Yesteryear-Regular.ttf", text: 'Yesteryear' },
+    { value: "https://cdn.rawgit.com/google/fonts/278aaad9/ofl/righteous/Righteous-Regular.ttf", text: 'Righteous' },
+    { value: "https://cdn.rawgit.com/google/fonts/278aaad9/ofl/pressstart2p/PressStart2P-Regular.ttf", text: 'Press Start 2P' },
+]
+var ringSizes = [
+    { value: 7, text: 'Size 3 (14.0mm)' },
+    { value: 7.2, text: 'Size 3\u{00BD} (14.4mm)' },
+    { value: 7.4, text: 'Size 4 (14.8mm)' },
+    { value: 7.6, text: 'Size 4\u{00BD} (15.2mm)' },
+    { value: 7.8, text: 'Size 5 (15.6mm)' },
+    { value: 8.0, text: 'Size 5\u{00BD} (16.0mm)' },
+    { value: 8.25, text: 'Size 6 (16.5mm)' },
+    { value: 8.45, text: 'Size 6\u{00BD} (16.9mm)' },
+    { value: 8.65, text: 'Size 7 (17.3mm)' },
+    { value: 8.85, text: 'Size 7\u{00BD} (17.7mm)' },
+    { value: 9.1, text: 'Size 8 (18.2mm)' },
+    { value: 9.3, text: 'Size 8\u{00BD} (18.6mm)' },
+    { value: 9.5, text: 'Size 9 (19.0mm)' },
+    { value: 9.7, text: 'Size 9\u{00BD} (19.4mm)' },
+    { value: 9.9, text: 'Size 10 (19.8mm)' },
+    { value: 10.1, text: 'Size 10\u{00BD} (20.2mm)' },
+    { value: 10.3, text: 'Size 11 (20.6mm)' },
+    { value: 10.5, text: 'Size 11\u{00BD} (21.0mm)' },
+    { value: 10.7, text: 'Size 12 (21.4mm)' },
+    { value: 10.9, text: 'Size 12\u{00BD} (21.8mm)' },
+    { value: 11.1, text: 'Size 13 (22.2mm)' },
+    { value: 11.3, text: 'Size 13\u{00BD} (22.6mm)' },
+]
+
+ var ringMaterials = {
+  'Gold': new THREE.Color('rgb(212,175,55)'),
+  'Sterling Silver': new THREE.Color('rgb(170,169,173)'),
+  'White Gold': new THREE.Color('rgb(170,169,173)'),
+  //'Platinum': new THREE.Color('rgb(255, 255, 255)'),
+  //'Copper': new THREE.Color('rgb(184,115,51)'),
+  'Bronze': new THREE.Color('rgb(176,141,87)'),
+  'Brass': new THREE.Color('rgb(181,166,66)'),
+  'Gold Plated Brass': new THREE.Color('rgb(212,175,55)'),
+  'Rhodium Plated Brass': new THREE.Color('rgb(170,169,173)'),
+};
+
+var galleryItems = [
+  {
+    title: "Thumbprint",
+  },
+  {
+    title: "Roman Numerals",
+  },
+  {
+    title: "Name",
+  },
+  {
+    title: "Waveform",
+  },
+];
+
+var faqItems = [
+  {
+    question: "How close will my ring be to the visualization?",
+    answer: "We use some of the most accurate manufacturing techology available today to produce your ring. Our machines are accurate down to about 1/3 of a millimeter. Select the 'Grid' option at the bottom of the design canvas to see how big 1/3mm is.",
+  },
+  {
+    question: "What if I am not satisfied with my product?",
+    answer: "Please <a href='#contact'>contact us</a> if you are not satified with your ring. We accept returns and replacements for manufacturing errors and quality defects.",
+  },
+  {
+    question: "How do I find my ring size?",
+    answer: "If you do not already know your ring size, there are a few ways to figure it out. The simplest is to wrap some string or floss around your finger and then measure it carefully with a ruler. You can also purchase a ring size measureing kit like <a href='https://amzn.to/3gxWaKn' target='_blank'>this one</a> to get a more accurate feel for the different ring sizes.",
+  },
+  {
+    question: "Are the wedding rings standard fit or comfort fit?",
+    answer: "All of our wedding rings come with a comfort fit profile at no extra cost.",
+  },
+  {
+    question: "What does 'Ring Width' mean?",
+    answer: "If you were to lay your ring flat on a table, the 'ring width' is how tall it would be, usually measured in millimeters (mm).",
+  },
+  {
+    question: "Can my ring be resized?",
+    answer: "Our precious metal rings are solid metal, so depending on the design you have made, a jeweler may be able to resize the ring up or down 1-2 sizes.",
+  },
+  {
+    question: "What is the purity of the gold rings (karats)?",
+    answer: "Our gold rings are made with 14K gold.",
+  },
+  {
+    question: "What does shipping cost?",
+    answer: "All of our rings ship for free.",
+  },
+  {
+    question: "What is the delivery and shipping time?",
+    answer: "The standard delivery time (the time between placing and shipping your order) is between 8 and 20 business days (holidays not included). Most of the orders are shipped out within 15 business days. Depending on your location, the transit time for shipment will take UPS 1-5 days.",
+  },
+  {
+    question: "What countries do you ship to?",
+    answer: "We are currently shipping to the United States, Canada, The United Kingdom, and European Countries within the E.U.",
+  },
+  {
+    question: "Is it possible for more customizations than your app allows?",
+    answer: "If you would like more complicated customizations than is currently possible with our app, then we can connect you with one of our jewelry designers. <a href='#contact'>Contact us</a> for more information.",
+  },
+  {
+    question: "Is it possible to partner with you on my social media platform?",
+    answer: "If you are interested in promoting our products on your social media platform, please <a href='#contact'>contact us</a>.",
+  },
+  {
+    question: "Do you have Lulim Custom Jewelry coupon codes?",
+    answer: "Yes! <a href='#enter-email'>Enter your email</a> to receive $20 off all gold and silver jewelry.",
+  },
+]
+
+Vue.use(BootstrapVue)
+
+var vm = new Vue({
+
+el: '#app',
+
+data: {
+  visualizeOverlay: null,
+  canvasWidth: 1280,
+  canvasHeight: 560,
+  rendererWidth: 1500,
+  rendererHeight: 464,
+  canvas: null,
+  cameraHeight: 500,
+  overlayTop: 50,
+  showGrid: false,
+  font: fonts[0].value,
+  cutpaths: null,
+  sobel: false,
+
+  designWidth: 6,
+  designRadius: 9.5,
+  designMaterial: 'Sterling Silver',
+  designInnerMargin: 0.3,
+  designOuterMargin: 0.3,
+  designModelPath:"models/ring.obj",
+
+  selectedObj: null,
+  fonts: fonts,
+  ringSizes: ringSizes,
+  ringWidths: [...Array(9).keys()].map((v) => v+2),
+  ringMaterials: Object.keys(ringMaterials),
+
+  devicePixelRatio: window.devicePixelRatio,
+  textureScale: 4/window.devicePixelRatio,  //if the scale and clipRectWidth make the textures go above 2048px wide then there are some weird safari bugs with toDataURL
+
+  email: null,
+  enterEmailText: "Enter email for $20 coupon.",
+
+  debug: true,
+
+  sidebarVisible: false,
+  visualizeFromCheckout: false,
+  checkoutBlankDesign: false,
+  checkoutState: 0,
+  showCheckoutOverlay: false,
+  serverSideModelPrice: null,
+
+  userEmail: null,
+
+  couponState: null,
+  couponErrorMessage: "Invalid coupon.",
+  couponModel: null,
+  couponValue: 0,
+
+  backendURL: "http://localhost:5000/api/v1/",
+
+  order: null,
+  orderLink: null,
+
+  galleryItems: galleryItems,
+  faqItems: faqItems,
+  visibleFAQs: new Array(faqItems.length).fill(false),
+  showDesignOverlay: true,
+
+  contactName: "",
+  contactEmail: "",
+  contactContent: "",
+
+},
+
+computed: {
+  clipRectLeft: function() {return this.canvasWidth/2 - this.clipRectWidth/2;},
+  clipRectTop: function() {return this.canvasHeight/2 - this.clipRectHeight/2;},
+  clipRectWidth: function() {return 1024 },
+  clipRectHeight: function() {return this.designAccessibleHeight * this.pixelsPerUnit},
+  textureHeight: function() {return (this.designInnerSurfWidth+this.designOuterSurfWidth) * this.pixelsPerUnit},
+  pixelsPerUnit: function() {return this.clipRectWidth/this.designCircumference},
+  designAccessibleHeight: function() {return this.designInnerSurfWidth-(this.designInnerMargin*2)},
+  designCircumference: function() {return this.designRadius * 2 * Math.PI},
+  designInnerSurfWidth: function() {return 0.9041*this.designWidth + 0.922}, //empirically derived from model
+  designOuterSurfWidth: function() {return 0.9463*this.designWidth + 0.9458}, //empirically derived from model
+  designIsBlank: function() {return !(this.canvas && (this.canvas.getObjects('image').length||this.canvas.getObjects('path').length)) ? true : false},
+  clientSideModelPrice: function() {return saleCost(this.designMaterial, modelParamsToVolume(10.1, this.designWidth))},
+  invert: {
+    get: function() {try {return this.selectedObj.filters[1].invert} catch {return 0}},
+    set: function(v) {try {this.selectedObj.filters[1].invert=v;this.applyFilters()} catch {return 0}},
+  },
+  brightness: {
+    get: function() {try {return this.selectedObj.filters[0].brightness} catch {return 0}},
+    set: function(v) {try {this.selectedObj.filters[0].brightness=v;this.applyFilters()} catch {return 0}},
+  },
+  contrast: {
+    get: function() {try {return this.selectedObj.filters[3].contrast} catch {return 0}},
+    set: function(v) {try {this.selectedObj.filters[3].contrast=v;this.applyFilters()} catch {return 0}},
+  },
+  text: {
+    get: function() {try {return this.selectedObj.text} catch {return 0}},
+    set: function(v) {try {this.selectedObj.text=v;this.updateObjText()} catch {return 0}},
+  },
+},
+
+watch: {
+  designWidth: function(width) {if(this.mesh){this.mesh.scale.y = width/6};this.reloadTextures();if(this.checkoutState!==2){this.checkoutState=0}},
+  designRadius: function(r) {if(this.mesh){this.mesh.scale.x = r/9.5; this.mesh.scale.z = r/9.5};this.reloadTextures();if(this.checkoutState!==2){this.checkoutState=0}},
+  designMaterial: function(m) {this.materialChanged(m);if(this.checkoutState!==2){this.checkoutState=0}},
+  clipRectHeight: function() {this.drawClipRect()},
+  showGrid: function() {this.drawClipRect()},
+  sidebarVisible: function() {this.sidebarVisibleChanged()},
+},
+
+mounted: function() {
+
+  fabric.Object.NUM_FRACTION_DIGITS = 5;
+
+  // main fabric canvas for design
+  this.canvas = new fabric.Canvas('c', {backgroundColor: 'rgb(255,255,255)', selection: false});
+
+  // fabric canvases used to generate texture maps for three js model
+  this.displacementCanvas = new fabric.Canvas('displacement-canvas', {backgroundColor: 'rgb(0,0,0)'});
+  this.roughnessCanvas = new fabric.Canvas('roughness-canvas', {backgroundColor: 'rgb(0,0,0)'});
+
+  this.canvas.on('object:selected', function(o) {this.selectedObj=o.target;this.font=o.target.font;this.sobel=o.target.isSobel}.bind(this))
+  this.canvas.on('selection:updated', function(o) {this.selectedObj=o.target;this.font=o.target.font;this.sobel=o.target.isSobel}.bind(this))
+  this.canvas.on('selection:cleared', function(o) {this.selectedObj = null}.bind(this))
+
+  this.drawClipRect();
+  this.initThreeJS();
+  this.animate();
+  this.loadOrderIfRequested();
+
+  this.scaleCanvasElements();
+  this.sidebarVisibleChanged();
+  this.addImageClicked();
+
+},
+
+methods: {
+
+  
+  loadOrderIfRequested: function() {
+    var orderID = this.getParameterByName("order")
+    if (this.isValidOrderID(orderID)) {
+      fetch(this.backendURL + 'order/' + orderID, {
+        method: "GET",
+        headers: {"Content-Type": "application/json"},
+      }).then(response => response.json())
+        .then(data => { 
+          if (data.hasOwnProperty('error')) {
+            console.log('Error getting order: ' + data.message)
+          } else {
+            vm.order = data.order;
+            vm.checkoutState = 2;
+            vm.designMaterial = vm.order.design.parameters.material;
+            vm.designRadius = vm.order.design.parameters.radius;
+            vm.designWidth = vm.order.design.parameters.width;
+            vm.canvas.loadFromJSON(data.order.design.scene_state, function() {
+              vm.ensureZOrder();
+              vm.sidebarVisible = true;
+            });
+          }
+        }).catch(function() {
+          console.log('Error getting order: ', orderID)
+        });
+      }
+  },
+  
+  isValidOrderID: function(orderID) {
+    return orderID !== null && orderID.length === 36;
+  },
+
+
+  sidebarVisibleChanged: function() {
+    if (this.sidebarVisible) {
+      if (!this.visualizeOverlay) {
+        this.visualizeFromCheckout = true;
+        this.toggleVisualizeOverlay({moveUp:false});
+      }
+      document.getElementById('three-js-order-form').appendChild( this.renderer.domElement );
+      this.scaleCanvasElements();
+    } else {
+      document.getElementById('three-js').appendChild( this.renderer.domElement );
+      this.scaleCanvasElements();
+      if (this.visualizeFromCheckout) {
+        this.visualizeFromCheckout = false;
+        this.toggleVisualizeOverlay();
+      }
+    }
+  },
+
+  checkEmail: function () {
+    if (!this.email) {
+      return null
+    } else if (!this.validEmail(this.email)) {
+      return false
+    }
+    return true
+  },
+
+  validEmail: function (email) {
+    var re = /\S+@\S+\.\S+/;
+    return re.test(email);
+  },
+
+  emailEntered: function() {
+    var enterEmailText = this.enterEmailText;
+    this.enterEmailText = "Check your email for a coupon!";
+    window.setTimeout(function(){ this.enterEmailText = enterEmailText }.bind(this), 3000); 
+    fetch(this.backendURL + "coupon", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({email: this.email})
+    }).then(response => response.json())
+      .then(data => { 
+        if (data.hasOwnProperty('error')) {
+          console.log('Error posting coupon request: ' + data.message)
+        }
+      });
+  },
+
+  applyFilters: function() {
+    this.selectedObj.applyFilters();
+    this.canvas.requestRenderAll();
+  },
+
+  drawClipRect: function() {
+    // Clip rect border 1px greater on all sides
+     var rect = new fabric.Rect({
+      left: this.clipRectLeft - 2,
+      top: this.clipRectTop - 2,
+      fill: null,
+      stroke: 'black',
+      width: this.clipRectWidth + 4,
+      height: this.clipRectHeight + 4,
+      evented: false,
+    });
+
+    // Inner clip rect drawn in white
+    var wrect = new fabric.Rect({
+      left: this.clipRectLeft-1,
+      top: this.clipRectTop-1,
+      fill: null,
+      stroke: 'white',
+      strokeWidth: 2,
+      width: this.clipRectWidth+1,
+      height: this.clipRectHeight+1,
+      evented: false,
+    });
+
+    // Make clipRect group
+    if (this.visualizeOverlay === null) {
+      var objs = [rect, wrect]
+    } else {
+      var objs = []
+    }
+    if (this.showGrid) {objs.push(...this.makeGridLines())}
+    if (this.clipRect) {this.canvas.remove(this.clipRect)}
+    this.clipRect = new fabric.Group(objs,{evented: false})
+    this.canvas.add(this.clipRect);
+    // make sure text doesn't extend past clip rect bounds
+    for (let pathObj of this.canvas.getObjects("path")) {
+        vm.restrictTextPos({'target': pathObj});
+    }
+    if (this.visualizeOverlay) {
+      this.clipRect.set('top', 15)  //FIXME: make this (15) an obj level setting
+    }
+    this.ensureZOrder()
+    this.canvas.requestRenderAll();
+  },
+
+  makeGridLines: function() {
+    var lines = [];
+    for ( var y = this.clipRectTop; y < this.clipRectTop+this.clipRectHeight; y += 0.3*this.pixelsPerUnit ) {
+      var x1 = this.clipRectLeft;
+      var x2 = x1 + this.clipRectWidth;
+      lines.push(new fabric.Line([x1, y, x2, y], {'stroke': 'rgba(50,50,50,0.15)'}))
+      lines.push(new fabric.Line([x1, y+1, x2, y+1], {'stroke': 'rgba(255,255,255,0.3)'}))
+    }
+    for ( var x = this.clipRectLeft; x < this.clipRectLeft+this.clipRectWidth; x += 0.3*this.pixelsPerUnit ) {
+      var y1 = this.clipRectTop;
+      var y2 = y1 + this.clipRectHeight;
+      lines.push(new fabric.Line([x, y1, x, y2], {'stroke': 'rgba(50,50,50,0.15)'}))
+      lines.push(new fabric.Line([x+1, y1, x+1, y2], {'stroke': 'rgba(255,255,255,0.3'}))
+    }
+    return lines
+  },
+
+  ensureZOrder: function() {
+    this.canvas.getObjects('path').forEach(obj => {obj.bringToFront()});
+    if (this.clipRect) {this.clipRect.bringToFront();}
+  },
+
+  addImageClicked: function(e) {
+    var img = new Image();
+    //img.src = URL.createObjectURL(e.target.files[0]); // use first selected image from input element
+    img.src = 'test-image.jpg'
+    var vm = this
+    img.onload = function() {
+      // scale large images to be maximum 2x canvas dimensions.
+      if (img.width > vm.canvasWidth*2 || img.height > vm.canvasHeight*2) {
+        var scale=Math.min((vm.canvasWidth*2/img.width),(vm.canvasHeight*2/img.height));
+      } else {
+        var scale = 1
+      }
+      var tmpCanvas=document.createElement("canvas");
+      var ctx=tmpCanvas.getContext("2d");
+      tmpCanvas.width=img.width*scale;
+      tmpCanvas.height=img.height*scale;
+      ctx.drawImage(img,0,0,tmpCanvas.width,tmpCanvas.height);
+      var scaledImg=new Image();
+      scaledImg.src=tmpCanvas.toDataURL('image/jpeg', 0.8);
+      scaledImg.onload = function() {
+        vm.loadSelectedImage(scaledImg);
+      }
+    }
+  },
+
+  toggleSobel: function() {
+    if (!this.selectedObj || this.selectedObj.type !== 'image') {
+      return
+    }
+    var imgObj = this.selectedObj;
+    if (!imgObj.isSobel) {
+      if (!imgObj.hasOwnProperty('sobelData')) {
+        console.log('creating sobel img');
+        var origImg = imgObj.getElement();
+        var grayscale = Filters.filterImage(Filters.grayscale, origImg);
+        grayscale = Filters.convoluteFloat32(grayscale, [ 1/16, 1/16, 1/16, 1/16, 
+                                                          1/16, 1/16, 1/16, 1/16, 
+                                                          1/16, 1/16, 1/16, 1/16, 
+                                                          1/16, 1/16, 1/16, 1/16, ]);
+        var vertical = Filters.convoluteFloat32(grayscale,
+                                                [ -1, 0, 1,
+                                                -2, 0, 2,
+                                                -1, 0, 1 ]);
+        var horizontal = Filters.convoluteFloat32(grayscale,
+                                                [ -1, -2, -1,
+                                                  0,  0,  0,
+                                                  1,  2,  1 ]);
+        var final_image = Filters.createImageData(vertical.width, vertical.height);
+        for (var i=0; i<final_image.data.length; i+=4){
+          var v = Math.abs(vertical.data[i]);
+          var h = Math.abs(horizontal.data[i]);
+          final_image.data[i] = (v+h)/2;
+          final_image.data[i+1] = (v+h)/2;
+          final_image.data[i+2] = (v+h)/2;
+          final_image.data[i+3] = 255;
+        }
+        Filters.invert(final_image);
+        var memCanvas = document.createElement('canvas');
+        memCanvas.width=origImg.width;
+        memCanvas.height=origImg.height;
+        memCanvas.getContext('2d').putImageData(final_image,0,0);
+        imgObj.sobelData = memCanvas.toDataURL('image/jpeg', 0.8)
+      }
+      imgObj.origData = imgObj.getSrc();
+      imgObj.setSrc(imgObj.sobelData, function(){this.canvas.requestRenderAll()}.bind(this));
+      imgObj.isSobel = true;
+    } else {
+      imgObj.setSrc(imgObj.origData, function(){this.canvas.requestRenderAll()}.bind(this))
+      imgObj.isSobel = false;
+    }
+    this.canvas.requestRenderAll();
+  },
+
+  loadSelectedImage: function(img) {
+      var fabricImageObj = new fabric.Image(img, {
+        left: 0,
+        top: 0,
+        opacity: 0.85
+      });
+      fabricImageObj.filters.push(
+        new fabric.Image.filters.Brightness(),
+        new fabric.Image.filters.Invert({ invert: false }),
+        new fabric.Image.filters.Grayscale(),
+        new fabric.Image.filters.Contrast()
+      );
+      var objWidth = fabricImageObj.width * fabricImageObj.scaleX;
+      if (objWidth > vm.canvas.width) {
+        fabricImageObj.set('scaleX', fabricImageObj.scaleX * (vm.canvas.width/objWidth));
+        fabricImageObj.set('scaleY', fabricImageObj.scaleY * (vm.canvas.width/objWidth));
+      }
+      var objHeight = fabricImageObj.height * fabricImageObj.scaleY;
+      if (objHeight > vm.canvas.height) {
+        fabricImageObj.set('scaleY', fabricImageObj.scaleY * (vm.canvas.height/objHeight));
+        fabricImageObj.set('scaleX', fabricImageObj.scaleX * (vm.canvas.height/objHeight));
+      }
+      fabricImageObj.applyFilters();
+      vm.canvas.centerObject(fabricImageObj);
+      fabricImageObj.setCoords();
+      vm.canvas.add(fabricImageObj);
+      vm.ensureZOrder()
+  },
+
+  addTextClicked: function() {
+    this.generateTextObj("1/1/2021")
+  },
+
+  generateTextObj: function(text, pos, font) {
+    var vm = this;
+    var selectedFont = font ? font : this.fonts[0].value;
+    opentype.load(selectedFont, function(err, font) {
+      if (err) {
+        alert('Could not load font: ' + err);
+      } else {
+        var path = font.getPath(text)
+        var fabricTextPath = new fabric.Path(path.toPathData(), {
+          text: text,
+          font: selectedFont,
+          hasRotatingPoint: false,
+        });
+        fabricTextPath.on('moving', vm.restrictTextPos);
+        fabricTextPath.on('scaling', vm.restrictTextPos);
+        if (!pos) {
+          vm.canvas.centerObject(fabricTextPath);
+        } else {
+          fabricTextPath.scaleX = pos.scaleX;
+          fabricTextPath.scaleY = pos.scaleY;
+          fabricTextPath.angle = pos.angle;
+          fabricTextPath.top = pos.top;
+          fabricTextPath.left = pos.left;
+        }
+        vm.canvas.add(fabricTextPath);
+        vm.canvas.setActiveObject(fabricTextPath);
+        vm.restrictTextPos({'target': fabricTextPath});
+        vm.ensureZOrder();
+        vm.canvas.renderAll();
+        vm.$nextTick(() => vm.$refs.text.focus())
+      }
+    })
+  },
+
+  reloadTextures: function() {
+    if (this.visualizeOverlay == null) {
+      return  //texures will reload next time the visualizeOverlay is displayed
+    }
+    this.canvas.remove(this.visualizeOverlay);
+    this.visualizeOverlay = null;
+    for (let pathObj of this.canvas.getObjects("path")) {
+        vm.restrictTextPos({'target': pathObj});
+    }
+    var moveUp = !this.sidebarVisible || !this.visualizeFromCheckout;
+    window.setTimeout(function(){this.toggleVisualizeOverlay({moveUp: moveUp})}.bind(this), 100) //FIXME: this is a hack (this whole method is a hack...)
+  },
+
+  toggleVisualizeOverlay: function(options) {
+    // hide overlay if currently visible
+    if (this.visualizeOverlay) {
+      this.canvas.remove(this.visualizeOverlay);
+      this.visualizeOverlay = null;
+      this.drawClipRect();
+      this.canvas.requestRenderAll();
+      return
+    }
+    // Extract cutting paths
+    var svgs = this.extractCuttingPaths();
+    this.cutpaths = svgs
+
+    // display prepared paths back on the canvas
+    this.displayCuttingPaths(svgs, options);
+  },
+
+  displayCuttingPaths: function(svgs, opts) {
+    var objs = [];
+    vm = this;
+    fabric.loadSVGFromString(svgs.imageSVG, function(objects, options) {
+      // load image SVGs
+      objects.forEach(obj => { obj.fill = obj.stroke = '#222'; });
+      objs.push(...objects)
+      fabric.loadSVGFromString(svgs.textSVG, function(objects, options) {
+        // load text SVGs
+        objs.push(...objects)
+
+        // group both image and text SVGs into one fabric group
+        var printGroup = fabric.util.groupSVGElements(objs, {})
+        printGroup.left += vm.clipRectLeft;
+        printGroup.top += vm.clipRectTop;
+        printGroup.setCoords();
+        var mainBG = new fabric.Rect({
+          width: 1500,
+          height: 864,
+          fill: 'white'
+        });
+        var whiteBG = new fabric.Rect({
+          top: vm.clipRectTop-2,
+          left: vm.clipRectLeft-2,
+          width: vm.clipRectWidth+4,
+          height: vm.clipRectHeight+4,
+          fill: 'white'
+        });
+        var o = [mainBG, whiteBG, printGroup]
+        vm.visualizeOverlay = new fabric.Group(o, {selectable: false, opacity: 1})
+        vm.canvas.add(vm.visualizeOverlay);
+        vm.canvas.renderAll();
+        vm.textureFromCanvas();
+        if (vm.showGrid) {vm.visualizeOverlay.addWithUpdate(new fabric.Group([...vm.makeGridLines()], {}))};
+        vm.visualizeOverlay.item(1).set('stroke', 'black')
+        vm.canvas.requestRenderAll();
+        if (opts && opts.moveUp) {
+          // skip idx 0 (white bg)
+          vm.visualizeOverlay.forEachObject((obj, idx) => { if (idx!= 0){
+            obj.animate('top', "-="+(vm.clipRectTop-15), { onChange: vm.canvas.requestRenderAll.bind(vm.canvas)})  //FIXME: make this (15) an obj level setting
+          }});
+        }
+      });
+    });
+  },
+
+  extractCuttingPaths: function() {
+    // deselect all objects and remove the clipRect
+    this.canvas.discardActiveObject();
+    if (this.clipRect) {this.canvas.remove(this.clipRect)}
+
+    // hide text paths to only convert images to vector paths
+    for (let childObj of this.canvas.getObjects("path")) {
+        childObj.visible = false;
+    }
+    this.canvas.renderAll();
+
+    // extract pixel data from canvas context
+    var ctx = document.getElementById('c').getContext('2d'); // load context of canvas
+    var pr = this.devicePixelRatio;
+    var imageData = ctx.getImageData(this.clipRectLeft*pr, this.clipRectTop*pr, this.clipRectWidth*pr, this.clipRectHeight*pr);
+
+    // convert pixel data to svg vector paths
+    var svgstr = ImageTracer.imagedataToSVG(
+      imageData,
+      { blurradius:5, blurdelta: 256, colorsampling:0, colorquantcycles:1,
+        numberofcolors:2, scale: 0.5 },
+    );
+
+    var imgDataSvgDiv = document.createElement('div');
+    imgDataSvgDiv.innerHTML = svgstr;
+
+    // remove the background polygons (white)
+    var svgPath = imgDataSvgDiv.firstChild.firstChild;
+    while (svgPath !== null) {
+      if (svgPath.getAttribute("fill") === "rgb(255,255,255)") {
+        var nextSibling = svgPath.nextSibling;
+        svgPath.remove();
+        svgPath = nextSibling;
+      } else {
+        svgPath = svgPath.nextSibling;
+      }
+    }
+
+    // Extract svg paths from the text objects
+    var txtDataSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    txtDataSvg.setAttribute('style', 'border: 1px solid black');
+    txtDataSvg.setAttribute('width', '960');
+    txtDataSvg.setAttribute('height', '96');
+    txtDataSvg.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xlink", "http://www.w3.org/1999/xlink");
+    txtDataSvg.innerHTML = '';
+    for (let childObj of this.canvas.getObjects("path")) {
+      childObj.visible = true;
+      // translate the clip rect's origin to the canvas origin before saving SVG
+      var l = childObj.left, t = childObj.top;
+      childObj.left -= this.clipRectLeft, childObj.top -= this.clipRectTop;
+      txtDataSvg.innerHTML += childObj.toSVG();
+      childObj.left = l, childObj.top = t;
+
+    }
+    return {imageSVG: imgDataSvgDiv.innerHTML, textSVG: txtDataSvg.outerHTML}
+  },
+
+  restrictTextPos: function(e){
+    var obj = e.target;
+    if (obj.type !== "path"){ return; }
+    var objWidth = obj.width * obj.scaleX;
+    var objHeight = obj.height * obj.scaleY;
+
+    // inset clip rect bounds by 1px
+    var crt = this.clipRectTop+1;
+    var crl = this.clipRectLeft+1;
+    var crh = this.clipRectHeight-2;
+    var crw = this.clipRectWidth-3; // I think one extra pixel is needed here for account for aliasing of some characters
+
+    var bottom_bound = Math.max(crt + crh - objHeight, crt);
+    var right_bound = Math.max(crl + crw - objWidth, crl);
+
+    obj.set('left', Math.min(Math.max(obj.left, crl), right_bound-1));          
+    obj.set('top', Math.min(Math.max(obj.top, crt), bottom_bound-1));          
+
+    if( objHeight > crh ) {
+      obj.set('scaleY', obj.scaleY * (crh/objHeight));
+    }
+    if( objWidth > crw ) {
+      obj.set('scaleX', obj.scaleX * (crw/objWidth));
+    }
+
+  },
+
+  updateObjText() {
+    if (this.selectedObj.type !== 'path') {return}
+    if (!this.text) {var text=''} else {var text=this.text}
+    var obj = this.selectedObj;
+    var pos = {
+      'scaleX': obj.scaleX,
+      'scaleY': obj.scaleY,
+      'angle': obj.angle,
+      'top': obj.top,
+      'left': obj.left,
+    }
+    this.generateTextObj(text, pos, this.font);
+    this.canvas.remove(obj);
+  },
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // THREE.js ////////////////////////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  initThreeJS: function() {
+
+    // create renderer and insert into DOM
+    this.renderer = new THREE.WebGLRenderer({alpha: true});
+    this.renderer.setPixelRatio( window.devicePixelRatio ); // set to 1 for faster speed but lower res
+    this.renderer.setSize(this.rendererWidth, this.rendererHeight); //window.innerWidth, window.innerHeight
+    this.renderer.outputEncoding = THREE.sRGBEncoding;
+
+    // create scene, camera and controls
+    this.scene = new THREE.Scene();
+    var aspect = this.rendererWidth / this.rendererHeight
+    this.camera = new THREE.OrthographicCamera(-this.cameraHeight*aspect, this.cameraHeight*aspect, this.cameraHeight, -this.cameraHeight, 1, 10000);
+    this.camera.zoom = 40;  //FIXME should dynamically adjust based on design size
+    this.camera.position.set(0, 5, -15);
+    this.camera.updateProjectionMatrix();
+    this.scene.add( this.camera );
+    this.controls = new THREE.OrbitControls( this.camera, this.renderer.domElement );
+    this.controls.enableZoom = false;
+    this.controls.enablePan = false;
+    this.controls.enableDamping = true;
+    this.controls.autoRotate = true;
+
+    // display settings
+    var settings = {
+      metalness: 0.7,
+      roughness: 0.2,
+      ambientIntensity: 0.95,
+      envMapIntensity: 2.1,
+      displacementScale: -0.1,
+      normalScale: -1.0
+    };
+
+    // lights
+    var ambientLight = new THREE.AmbientLight( 0xffffff, settings.ambientIntensity );
+    var pointLight = new THREE.PointLight( 0xffffff, 0.5 );
+    var pointLight2 = new THREE.PointLight( 0xffffff, 1 );
+    var pointLight3 = new THREE.PointLight( 0xffffff, 0.5 );
+    pointLight.position.z = 2500;
+    pointLight3.position.x = - 1000;
+    pointLight3.position.z = 1000;
+    this.camera.add( pointLight2 );
+    this.scene.add( pointLight );
+    this.scene.add( ambientLight );
+    this.scene.add( pointLight3 );
+
+    // env map
+    var path = "textures/bedroom/";
+    var format = '.png';
+    var urls = [
+      path + 'px' + format, path + 'nx' + format,
+      path + 'py' + format, path + 'ny' + format,
+      path + 'pz' + format, path + 'nz' + format
+    ];
+    var reflectionCube = new THREE.CubeTextureLoader().load( urls );
+    reflectionCube.encoding = THREE.sRGBEncoding;
+
+    // material
+    this.material = new THREE.MeshStandardMaterial( {
+      color: ringMaterials[this.designMaterial],
+      metalness: settings.metalness,
+      displacementScale: settings.displacementScale,
+      envMap: reflectionCube,
+      envMapIntensity: settings.envMapIntensity,
+      side: THREE.DoubleSide
+    } );
+
+    // start by loading blank texture
+    // FIXME: why is this needed? (textures dont seem to update later if I dont do this here)
+    this.textureFromCanvas();
+
+    // load in 3d model
+    var loader = new THREE.OBJLoader();
+    loader.load( this.designModelPath, function ( group ) {
+      var geometry = this.geometry = group.children[ 0 ].geometry;
+      geometry.attributes.uv2 = geometry.attributes.uv;
+      geometry.center();
+      this.mesh = new THREE.Mesh( geometry, this.material );
+      this.mesh.scale.y = this.designWidth/6;
+      this.mesh.scale.x = this.designRadius/9.5;
+      this.mesh.scale.z = this.designRadius/9.5;
+      this.scene.add( this.mesh );
+    }.bind(this) );
+
+    window.addEventListener( 'resize', this.scaleCanvasElements, false );
+  },
+
+  textureFromCanvas: function() {
+    // extract imageData from main canvas
+    var pr = this.devicePixelRatio;
+    var ctx = document.getElementById('c').getContext('2d');
+    var imageData = ctx.getImageData(this.clipRectLeft*pr, this.clipRectTop*pr, this.clipRectWidth*pr, this.clipRectHeight*pr);
+
+    // paste image data into temp canvas so it can be loaded into a fabric Image obj
+    var c = document.getElementById('copy-canvas')
+    c.getContext('2d').putImageData(imageData, 0, 0+(this.designInnerMargin*this.pixelsPerUnit*pr));
+
+    // load image data into Image obj
+    fabric.Image.fromURL(c.toDataURL(), function(img) {
+      img.flipX = true;
+      img.scaleX = 1/pr * this.textureScale;
+      img.scaleY = 1/pr * this.textureScale;
+      img.filters.push(new fabric.Image.filters.Invert());
+      img.applyFilters();
+      this.displacementCanvas.remove(...this.displacementCanvas.getObjects());
+      this.displacementCanvas.setDimensions({height: this.textureHeight*this.textureScale})
+      this.displacementCanvas.add(img);
+      this.displacementCanvas.renderAll();
+
+      // generate normal map from displacement map
+      var normalMap = document.getElementById('normal-canvas')
+      var dispMap = document.getElementById('displacement-canvas');
+      var imageData = dispMap.getContext('2d').getImageData(0, 0, this.clipRectWidth*pr*this.textureScale, this.textureHeight*pr*this.textureScale);
+      normalMap.getContext('2d').putImageData(imageData, 0,0);
+      this.height2normal( normalMap );
+
+      // generate and apply three.js textures from normal canvas and displadement canvas
+      this.material.normalMap = new THREE.CanvasTexture(normalMap.getContext('2d').canvas);
+      this.material.displacementMap = new THREE.CanvasTexture(dispMap.getContext('2d').canvas);
+    }.bind(this));
+
+    // Load the same image data into the roughness map
+    fabric.Image.fromURL(c.toDataURL(), function(img) {
+      img.flipX = true;
+      img.scaleX = 1/pr * this.textureScale;
+      img.scaleY = 1/pr * this.textureScale;
+      img.filters.push(new fabric.Image.filters.Invert());
+      img.applyFilters();
+      this.roughnessCanvas.remove(...this.roughnessCanvas.getObjects());
+      this.roughnessCanvas.setDimensions({height: this.textureHeight*this.textureScale})
+      this.roughnessCanvas.add(img);
+      var roughMap = document.getElementById('roughness-canvas');
+      // brighten the whole image so the base roughness is 0.2
+      var brightRect = new fabric.Rect({
+        top:-5,
+        left:-5,
+        width: this.roughnessCanvas.width+10,
+        height: this.roughnessCanvas.height+10,
+        fill: 'white',
+        opacity: 0.2,
+      });
+      this.roughnessCanvas.add(brightRect);
+      this.roughnessCanvas.renderAll();
+      this.material.roughnessMap = new THREE.CanvasTexture(roughMap.getContext('2d').canvas);
+    }.bind(this));
+  },
+
+  materialChanged: function(material) {
+    this.material.color = ringMaterials[material];
+  },
+
+  scaleCanvasElements: function() {
+    var canvasWidth = Math.max(window.innerWidth, 400);
+    var canvasHeight = this.canvasHeight * canvasWidth/this.canvasWidth
+    if (canvasHeight > window.innerHeight-110) {
+      canvasHeight = window.innerHeight-110;
+      canvasWidth = this.canvasWidth * canvasHeight/this.canvasHeight
+    }
+    if (this.sidebarVisible) {
+      var width = 500;
+      var height = 800;
+    } else {
+      var width = canvasWidth;
+      var height = this.rendererHeight;
+    }
+    var aspect = width / (height * width/this.rendererWidth)
+    this.camera.left = - this.cameraHeight * aspect;
+    this.camera.right = this.cameraHeight * aspect;
+    this.camera.top = this.cameraHeight;
+    this.camera.bottom = - this.cameraHeight;
+    this.camera.updateProjectionMatrix();
+    this.renderer.setSize( width, height * width/this.rendererWidth );
+
+    this.canvas.setDimensions({width: canvasWidth, height: canvasHeight}, {cssOnly: true});
+    this.canvas.requestRenderAll();
+  },
+
+  animate: function() {
+    requestAnimationFrame( this.animate );
+    this.controls.update();
+    this.renderer.render( this.scene, this.camera );
+  },
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Utils ///////////////////////////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  height2normal: function( canvas ) {
+    var context = canvas.getContext( '2d' );
+    var width = canvas.width;
+    var height = canvas.height;
+    var src = context.getImageData( 0, 0, width, height );
+    var dst = context.createImageData( width, height );
+    for ( var i = 0, l = width * height * 4; i < l; i += 4 ) {
+      var x1, x2, y1, y2;
+      if ( i % ( width * 4 ) == 0 ) { //left edge
+        x1 = src.data[ i ];
+        x2 = src.data[ i + 4 ];
+      } else if ( i % ( width * 4 ) == ( width - 1 ) * 4 ) { // right edge
+        x1 = src.data[ i - 4 ];
+        x2 = src.data[ i ];
+      } else {
+        x1 = src.data[ i - 4 ];
+        x2 = src.data[ i + 4 ];
+      }
+      if ( i < width * 4 ) { //top edge
+        y1 = src.data[ i ];
+        y2 = src.data[ i + width * 4 ];
+      } else if ( i > width * ( height - 1 ) * 4) { // bottom edge
+        y1 = src.data[ i - width * 4 ];
+        y2 = src.data[ i ];
+      } else {
+        y1 = src.data[ i - width * 4 ];
+        y2 = src.data[ i + width * 4 ];
+      }
+      dst.data[ i ] = ( x1 - x2 ) + 127;
+      dst.data[ i + 1 ] = ( y1 - y2 ) + 127;
+      dst.data[ i + 2 ] = 255;
+      dst.data[ i + 3 ] = 255;
+    }
+    context.putImageData( dst, 0, 0 );
+  },
+
+  getParameterByName: function(name, url) {
+    if (!url) url = window.location.href;
+    name = name.replace(/[\[\]]/g, '\\$&');
+    var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
+        results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return '';
+    return decodeURIComponent(results[2].replace(/\+/g, ' '));
+  },
+
+}
+})
+window.vm = vm;
+
+</script>
+</body>
+</html>
