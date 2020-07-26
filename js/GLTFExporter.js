@@ -1,1 +1,2285 @@
-console.warn("THREE.GLTFExporter: As part of the transition to ES6 Modules, the files in 'examples/js' were deprecated in May 2020 (r117) and will be deleted in December 2020 (r124). You can find more information about developing using ES6 Modules in https://threejs.org/docs/#manual/en/introduction/Installation.");var WEBGL_CONSTANTS={POINTS:0,LINES:1,LINE_LOOP:2,LINE_STRIP:3,TRIANGLES:4,TRIANGLE_STRIP:5,TRIANGLE_FAN:6,UNSIGNED_BYTE:5121,UNSIGNED_SHORT:5123,FLOAT:5126,UNSIGNED_INT:5125,ARRAY_BUFFER:34962,ELEMENT_ARRAY_BUFFER:34963,NEAREST:9728,LINEAR:9729,NEAREST_MIPMAP_NEAREST:9984,LINEAR_MIPMAP_NEAREST:9985,NEAREST_MIPMAP_LINEAR:9986,LINEAR_MIPMAP_LINEAR:9987,CLAMP_TO_EDGE:33071,MIRRORED_REPEAT:33648,REPEAT:10497},THREE_TO_WEBGL={};THREE_TO_WEBGL[THREE.NearestFilter]=WEBGL_CONSTANTS.NEAREST,THREE_TO_WEBGL[THREE.NearestMipmapNearestFilter]=WEBGL_CONSTANTS.NEAREST_MIPMAP_NEAREST,THREE_TO_WEBGL[THREE.NearestMipmapLinearFilter]=WEBGL_CONSTANTS.NEAREST_MIPMAP_LINEAR,THREE_TO_WEBGL[THREE.LinearFilter]=WEBGL_CONSTANTS.LINEAR,THREE_TO_WEBGL[THREE.LinearMipmapNearestFilter]=WEBGL_CONSTANTS.LINEAR_MIPMAP_NEAREST,THREE_TO_WEBGL[THREE.LinearMipmapLinearFilter]=WEBGL_CONSTANTS.LINEAR_MIPMAP_LINEAR,THREE_TO_WEBGL[THREE.ClampToEdgeWrapping]=WEBGL_CONSTANTS.CLAMP_TO_EDGE,THREE_TO_WEBGL[THREE.RepeatWrapping]=WEBGL_CONSTANTS.REPEAT,THREE_TO_WEBGL[THREE.MirroredRepeatWrapping]=WEBGL_CONSTANTS.MIRRORED_REPEAT;var PATH_PROPERTIES={scale:"scale",position:"translation",quaternion:"rotation",morphTargetInfluences:"weights"};THREE.GLTFExporter=function(){},THREE.GLTFExporter.prototype={constructor:THREE.GLTFExporter,parse:function(e,p,c){var t={binary:!1,trs:!1,onlyVisible:!0,truncateDrawRange:!0,embedImages:!0,maxTextureSize:1/0,animations:[],forcePowerOfTwoTextures:!1,includeCustomExtensions:!1};0<(c=Object.assign({},t,c)).animations.length&&(c.trs=!0);var E,C={asset:{version:"2.0",generator:"THREE.GLTFExporter"}},m=0,r=[],f=[],T=new Map,h=[],P={},U={meshes:new Map,attributes:new Map,attributesNormalized:new Map,materials:new Map,textures:new Map,images:new Map},a=new Map,n=0;function W(e){return a.has(e)||a.set(e,n++),a.get(e)}function D(e,r){return e.length===r.length&&e.every(function(e,t){return e===r[t]})}function g(e){return 4*Math.ceil(e/4)}function d(e,t){t=t||0;var r=g(e.byteLength);if(r===e.byteLength)return e;var a=new Uint8Array(r);if(a.set(new Uint8Array(e)),0!==t)for(var n=e.byteLength;n<r;n++)a[n]=t;return a.buffer}function z(t,e){if(0!==Object.keys(t.userData).length)try{var r=JSON.parse(JSON.stringify(t.userData));if(c.includeCustomExtensions&&r.gltfExtensions){for(var a in void 0===e.extensions&&(e.extensions={}),r.gltfExtensions)e.extensions[a]=r.gltfExtensions[a],P[a]=!0;delete r.gltfExtensions}0<Object.keys(r).length&&(e.extras=r)}catch(e){console.warn("THREE.GLTFExporter: userData of '"+t.name+"' won't be serialized because of JSON.stringify error - "+e.message)}}function k(e,t){var r=!1,a={};0===t.offset.x&&0===t.offset.y||(a.offset=t.offset.toArray(),r=!0),0!==t.rotation&&(a.rotation=t.rotation,r=!0),1===t.repeat.x&&1===t.repeat.y||(a.scale=t.repeat.toArray(),r=!0),r&&(e.extensions=e.extensions||{},e.extensions.KHR_texture_transform=a,P.KHR_texture_transform=!0)}function R(e){return C.buffers||(C.buffers=[{byteLength:0}]),r.push(e),0}function V(e,t,r,a){var n,s,i;if(e.array.constructor===Float32Array)n=WEBGL_CONSTANTS.FLOAT;else if(e.array.constructor===Uint32Array)n=WEBGL_CONSTANTS.UNSIGNED_INT;else if(e.array.constructor===Uint16Array)n=WEBGL_CONSTANTS.UNSIGNED_SHORT;else{if(e.array.constructor!==Uint8Array)throw new Error("THREE.GLTFExporter: Unsupported bufferAttribute component type.");n=WEBGL_CONSTANTS.UNSIGNED_BYTE}if(void 0===r&&(r=0),void 0===a&&(a=e.count),c.truncateDrawRange&&void 0!==t&&null===t.index&&(s=r+a,i=t.drawRange.count===1/0?e.count:t.drawRange.start+t.drawRange.count,r=Math.max(r,t.drawRange.start),(a=Math.min(s,i)-r)<0&&(a=0)),0===a)return null;var o,l=function(e,t,r){for(var a={min:new Array(e.itemSize).fill(Number.POSITIVE_INFINITY),max:new Array(e.itemSize).fill(Number.NEGATIVE_INFINITY)},n=t;n<t+r;n++)for(var s=0;s<e.itemSize;s++){var i=e.array[n*e.itemSize+s];a.min[s]=Math.min(a.min[s],i),a.max[s]=Math.max(a.max[s],i)}return a}(e,r,a);void 0!==t&&(o=e===t.index?WEBGL_CONSTANTS.ELEMENT_ARRAY_BUFFER:WEBGL_CONSTANTS.ARRAY_BUFFER);var u=function(e,t,r,a,n){var s;C.bufferViews||(C.bufferViews=[]),s=t===WEBGL_CONSTANTS.UNSIGNED_BYTE?1:t===WEBGL_CONSTANTS.UNSIGNED_SHORT?2:4;for(var i=g(a*e.itemSize*s),o=new DataView(new ArrayBuffer(i)),l=0,u=r;u<r+a;u++)for(var p,E=0;E<e.itemSize;E++){4<e.itemSize?p=e.array[u*e.itemSize+E]:0===E?p=e.getX(u):1===E?p=e.getY(u):2===E?p=e.getZ(u):3===E&&(p=e.getW(u)),t===WEBGL_CONSTANTS.FLOAT?o.setFloat32(l,p,!0):t===WEBGL_CONSTANTS.UNSIGNED_INT?o.setUint32(l,p,!0):t===WEBGL_CONSTANTS.UNSIGNED_SHORT?o.setUint16(l,p,!0):t===WEBGL_CONSTANTS.UNSIGNED_BYTE&&o.setUint8(l,p),l+=s}var c={buffer:R(o.buffer),byteOffset:m,byteLength:i};return void 0!==n&&(c.target=n),n===WEBGL_CONSTANTS.ARRAY_BUFFER&&(c.byteStride=e.itemSize*s),m+=i,C.bufferViews.push(c),{id:C.bufferViews.length-1,byteLength:0}}(e,n,r,a,o),p={bufferView:u.id,byteOffset:u.byteOffset,componentType:n,count:a,max:l.max,min:l.min,type:{1:"SCALAR",2:"VEC2",3:"VEC3",4:"VEC4",16:"MAT4"}[e.itemSize]};return!0===e.normalized&&(p.normalized=!0),C.accessors||(C.accessors=[]),C.accessors.push(p),C.accessors.length-1}function s(e,t,r){U.images.has(e)||U.images.set(e,{});var a=U.images.get(e),n=t===THREE.RGBAFormat?"image/png":"image/jpeg",s=n+":flipY/"+r.toString();if(void 0!==a[s])return a[s];C.images||(C.images=[]);var i,o,l,u={mimeType:n};c.embedImages?((i=E=E||document.createElement("canvas")).width=Math.min(e.width,c.maxTextureSize),i.height=Math.min(e.height,c.maxTextureSize),!c.forcePowerOfTwoTextures||(l=i,THREE.MathUtils.isPowerOfTwo(l.width)&&THREE.MathUtils.isPowerOfTwo(l.height))||(console.warn("GLTFExporter: Resized non-power-of-two image.",e),i.width=THREE.MathUtils.floorPowerOfTwo(i.width),i.height=THREE.MathUtils.floorPowerOfTwo(i.height)),o=i.getContext("2d"),!0===r&&(o.translate(0,i.height),o.scale(1,-1)),o.drawImage(e,0,0,i.width,i.height),!0===c.binary?f.push(new Promise(function(r){i.toBlob(function(e){var t;t=e,C.bufferViews||(C.bufferViews=[]),new Promise(function(r){var a=new window.FileReader;a.readAsArrayBuffer(t),a.onloadend=function(){var e=d(a.result),t={buffer:R(e),byteOffset:m,byteLength:e.byteLength};m+=e.byteLength,C.bufferViews.push(t),r(C.bufferViews.length-1)}}).then(function(e){u.bufferView=e,r()})},n)})):u.uri=i.toDataURL(n)):u.uri=e.src,C.images.push(u);var p=C.images.length-1;return a[s]=p}function K(e){if(U.textures.has(e))return U.textures.get(e);C.textures||(C.textures=[]);var t={sampler:function(e){C.samplers||(C.samplers=[]);var t={magFilter:THREE_TO_WEBGL[e.magFilter],minFilter:THREE_TO_WEBGL[e.minFilter],wrapS:THREE_TO_WEBGL[e.wrapS],wrapT:THREE_TO_WEBGL[e.wrapT]};return C.samplers.push(t),C.samplers.length-1}(e),source:s(e.image,e.format,e.flipY)};e.name&&(t.name=e.name),C.textures.push(t);var r=C.textures.length-1;return U.textures.set(e,r),r}function S(e){var t=[e.geometry.uuid];if(Array.isArray(e.material))for(var r=0,a=e.material.length;r<a;r++)t.push(e.material[r].uuid);else t.push(e.material.uuid);var n=t.join(":");if(U.meshes.has(n))return U.meshes.get(n);var s=e.geometry,i=e.isLineSegments?WEBGL_CONSTANTS.LINES:e.isLineLoop?WEBGL_CONSTANTS.LINE_LOOP:e.isLine?WEBGL_CONSTANTS.LINE_STRIP:e.isPoints?WEBGL_CONSTANTS.POINTS:e.material.wireframe?WEBGL_CONSTANTS.LINES:WEBGL_CONSTANTS.TRIANGLES;s.isBufferGeometry||(console.warn("GLTFExporter: Exporting THREE.Geometry will increase file size. Use THREE.BufferGeometry instead."),s=(new THREE.BufferGeometry).setFromObject(e));var o={},l={},u=[],p=[],E={uv:"TEXCOORD_0",uv2:"TEXCOORD_1",color:"COLOR_0",skinWeight:"WEIGHTS_0",skinIndex:"JOINTS_0"},c=s.getAttribute("normal");void 0===c||function(e){if(!U.attributesNormalized.has(e)){for(var t=new THREE.Vector3,r=0,a=e.count;r<a;r++)if(5e-4<Math.abs(t.fromArray(e.array,3*r).length()-1))return;return 1}}(c)||(console.warn("THREE.GLTFExporter: Creating normalized normal attribute from the non-normalized one."),s.setAttribute("normal",function(e){if(U.attributesNormalized.has(e))return U.attributesNormalized.get(e);for(var t=e.clone(),r=new THREE.Vector3,a=0,n=t.count;a<n;a++)r.fromArray(t.array,3*a),0===r.x&&0===r.y&&0===r.z?r.setX(1):r.normalize(),r.toArray(t.array,3*a);return U.attributesNormalized.set(e,t),t}(c)));var m,f,T=null;for(var h in s.attributes){"morph"!==h.substr(0,5)&&(y=s.attributes[h],h=E[h]||h.toUpperCase(),/^(POSITION|NORMAL|TANGENT|TEXCOORD_\d+|COLOR_\d+|JOINTS_\d+|WEIGHTS_\d+)$/.test(h)||(h="_"+h),U.attributes.has(W(y))?l[h]=U.attributes.get(W(y)):(T=null,m=y.array,"JOINTS_0"!==h||m instanceof Uint16Array||m instanceof Uint8Array||(console.warn('GLTFExporter: Attribute "skinIndex" converted to type UNSIGNED_SHORT.'),T=new THREE.BufferAttribute(new Uint16Array(m),y.itemSize,y.normalized)),null!==(f=V(T||y,s))&&(l[h]=f,U.attributes.set(W(y),f))))}if(void 0!==c&&s.setAttribute("normal",c),0===Object.keys(l).length)return null;if(void 0!==e.morphTargetInfluences&&0<e.morphTargetInfluences.length){var g=[],d=[],R={};if(void 0!==e.morphTargetDictionary)for(var S in e.morphTargetDictionary)R[e.morphTargetDictionary[S]]=S;for(r=0;r<e.morphTargetInfluences.length;++r){var N={},v=!1;for(var h in s.morphAttributes)if("position"===h||"normal"===h){var y=s.morphAttributes[h][r],A=h.toUpperCase(),L=s.attributes[h];if(U.attributes.has(W(y)))N[A]=U.attributes.get(W(y));else{var _=y.clone();if(!s.morphTargetsRelative)for(var b=0,w=y.count;b<w;b++)_.setXYZ(b,y.getX(b)-L.getX(b),y.getY(b)-L.getY(b),y.getZ(b)-L.getZ(b));N[A]=V(_,s),U.attributes.set(W(L),N[A])}}else v||(console.warn("GLTFExporter: Only POSITION and NORMAL morph are supported."),v=!0);p.push(N),g.push(e.morphTargetInfluences[r]),void 0!==e.morphTargetDictionary&&d.push(R[r])}o.weights=g,0<d.length&&(o.extras={},o.extras.targetNames=d)}var x=Array.isArray(e.material);if(x&&0===s.groups.length)return null;for(var M=x?e.material:[e.material],I=x?s.groups:[{materialIndex:0,start:void 0,count:void 0}],r=0,G=I.length;r<G;r++){var O,H={mode:i,attributes:l};z(s,H),0<p.length&&(H.targets=p),null!==s.index&&(O=W(s.index),void 0===I[r].start&&void 0===I[r].count||(O+=":"+I[r].start+":"+I[r].count),U.attributes.has(O)?H.indices=U.attributes.get(O):(H.indices=V(s.index,s,I[r].start,I[r].count),U.attributes.set(O,H.indices)),null===H.indices&&delete H.indices);var B=function(e){if(U.materials.has(e))return U.materials.get(e);if(e.isShaderMaterial)return console.warn("GLTFExporter: THREE.ShaderMaterial not supported."),null;C.materials||(C.materials=[]);var t={pbrMetallicRoughness:{}};e.isMeshBasicMaterial?(t.extensions={KHR_materials_unlit:{}},P.KHR_materials_unlit=!0):e.isGLTFSpecularGlossinessMaterial?(t.extensions={KHR_materials_pbrSpecularGlossiness:{}},P.KHR_materials_pbrSpecularGlossiness=!0):e.isMeshStandardMaterial||console.warn("GLTFExporter: Use MeshStandardMaterial or MeshBasicMaterial for best results.");var r,a,n,s,i,o,l,u,p=e.color.toArray().concat([e.opacity]);D(p,[1,1,1,1])||(t.pbrMetallicRoughness.baseColorFactor=p),e.isMeshStandardMaterial?(t.pbrMetallicRoughness.metallicFactor=e.metalness,t.pbrMetallicRoughness.roughnessFactor=e.roughness):e.isMeshBasicMaterial?(t.pbrMetallicRoughness.metallicFactor=0,t.pbrMetallicRoughness.roughnessFactor=.9):(t.pbrMetallicRoughness.metallicFactor=.5,t.pbrMetallicRoughness.roughnessFactor=.5),e.isGLTFSpecularGlossinessMaterial&&(t.pbrMetallicRoughness.baseColorFactor&&(t.extensions.KHR_materials_pbrSpecularGlossiness.diffuseFactor=t.pbrMetallicRoughness.baseColorFactor),r=[1,1,1],e.specular.toArray(r,0),t.extensions.KHR_materials_pbrSpecularGlossiness.specularFactor=r,t.extensions.KHR_materials_pbrSpecularGlossiness.glossinessFactor=e.glossiness),(e.metalnessMap||e.roughnessMap)&&(e.metalnessMap===e.roughnessMap?(k(a={index:K(e.metalnessMap)},e.metalnessMap),t.pbrMetallicRoughness.metallicRoughnessTexture=a):console.warn("THREE.GLTFExporter: Ignoring metalnessMap and roughnessMap because they are not the same Texture.")),e.map&&(k(n={index:K(e.map)},e.map),e.isGLTFSpecularGlossinessMaterial&&(t.extensions.KHR_materials_pbrSpecularGlossiness.diffuseTexture=n),t.pbrMetallicRoughness.baseColorTexture=n),e.isGLTFSpecularGlossinessMaterial&&e.specularMap&&(k(s={index:K(e.specularMap)},e.specularMap),t.extensions.KHR_materials_pbrSpecularGlossiness.specularGlossinessTexture=s),e.emissive&&(D(i=e.emissive.clone().multiplyScalar(e.emissiveIntensity).toArray(),[0,0,0])||(t.emissiveFactor=i),e.emissiveMap&&(k(o={index:K(e.emissiveMap)},e.emissiveMap),t.emissiveTexture=o)),e.normalMap&&(l={index:K(e.normalMap)},e.normalScale&&-1!==e.normalScale.x&&(e.normalScale.x!==e.normalScale.y&&console.warn("THREE.GLTFExporter: Normal scale components are different, ignoring Y and exporting X."),l.scale=e.normalScale.x),k(l,e.normalMap),t.normalTexture=l),e.aoMap&&(u={index:K(e.aoMap),texCoord:1},1!==e.aoMapIntensity&&(u.strength=e.aoMapIntensity),k(u,e.aoMap),t.occlusionTexture=u),e.transparent?t.alphaMode="BLEND":0<e.alphaTest&&(t.alphaMode="MASK",t.alphaCutoff=e.alphaTest),e.side===THREE.DoubleSide&&(t.doubleSided=!0),""!==e.name&&(t.name=e.name),z(e,t),C.materials.push(t);var E=C.materials.length-1;return U.materials.set(e,E),E}(M[I[r].materialIndex]);null!==B&&(H.material=B),u.push(H)}o.primitives=u,C.meshes||(C.meshes=[]),C.meshes.push(o);var F=C.meshes.length-1;return U.meshes.set(n,F),F}function N(e){C.nodes||(C.nodes=[]);var t,r,a,n={};if(c.trs?(t=e.quaternion.toArray(),r=e.position.toArray(),a=e.scale.toArray(),D(t,[0,0,0,1])||(n.rotation=t),D(r,[0,0,0])||(n.translation=r),D(a,[1,1,1])||(n.scale=a)):(e.matrixAutoUpdate&&e.updateMatrix(),D(e.matrix.elements,[1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1])||(n.matrix=e.matrix.elements)),""!==e.name&&(n.name=String(e.name)),z(e,n),e.isMesh||e.isLine||e.isPoints){var s=S(e);null!==s&&(n.mesh=s)}else if(e.isCamera)n.camera=function(e){C.cameras||(C.cameras=[]);var t=e.isOrthographicCamera,r={type:t?"orthographic":"perspective"};return t?r.orthographic={xmag:2*e.right,ymag:2*e.top,zfar:e.far<=0?.001:e.far,znear:e.near<0?0:e.near}:r.perspective={aspectRatio:e.aspect,yfov:THREE.MathUtils.degToRad(e.fov),zfar:e.far<=0?.001:e.far,znear:e.near<0?0:e.near},""!==e.name&&(r.name=e.type),C.cameras.push(r),C.cameras.length-1}(e);else if(e.isDirectionalLight||e.isPointLight||e.isSpotLight)P.KHR_lights_punctual||(C.extensions=C.extensions||{},C.extensions.KHR_lights_punctual={lights:[]},P.KHR_lights_punctual=!0),n.extensions=n.extensions||{},n.extensions.KHR_lights_punctual={light:function(e){var t={};e.name&&(t.name=e.name),t.color=e.color.toArray(),t.intensity=e.intensity,e.isDirectionalLight?t.type="directional":e.isPointLight?(t.type="point",0<e.distance&&(t.range=e.distance)):e.isSpotLight&&(t.type="spot",0<e.distance&&(t.range=e.distance),t.spot={},t.spot.innerConeAngle=(e.penumbra-1)*e.angle*-1,t.spot.outerConeAngle=e.angle),void 0!==e.decay&&2!==e.decay&&console.warn("THREE.GLTFExporter: Light decay may be lost. glTF is physically-based, and expects light.decay=2."),!e.target||e.target.parent===e&&0===e.target.position.x&&0===e.target.position.y&&-1===e.target.position.z||console.warn("THREE.GLTFExporter: Light direction may be lost. For best results, make light.target a child of the light with position 0,0,-1.");var r=C.extensions.KHR_lights_punctual.lights;return r.push(t),r.length-1}(e)};else if(e.isLight)return console.warn("THREE.GLTFExporter: Only directional, point, and spot lights are supported.",e),null;if(e.isSkinnedMesh&&h.push(e),0<e.children.length){for(var i=[],o=0,l=e.children.length;o<l;o++){var u,p=e.children[o];!p.visible&&!1!==c.onlyVisible||null!==(u=N(p))&&i.push(u)}0<i.length&&(n.children=i)}C.nodes.push(n);var E=C.nodes.length-1;return T.set(e,E),E}function i(e){C.scenes||(C.scenes=[],C.scene=0);var t={};""!==e.name&&(t.name=e.name),C.scenes.push(t);for(var r=[],a=0,n=e.children.length;a<n;a++){var s,i=e.children[a];!i.visible&&!1!==c.onlyVisible||null!==(s=N(i))&&r.push(s)}0<r.length&&(t.nodes=r),z(e,t)}!function(e){e=e instanceof Array?e:[e];for(var t=[],r=0;r<e.length;r++)e[r]instanceof THREE.Scene?i(e[r]):t.push(e[r]);for(0<t.length&&function(e){var t=new THREE.Scene;t.name="AuxScene";for(var r=0;r<e.length;r++)t.children.push(e[r]);i(t)}(t),r=0;r<h.length;++r)!function(e){var t=C.nodes[T.get(e)],r=e.skeleton;if(void 0!==r){var a=e.skeleton.bones[0];if(void 0!==a){for(var n=[],s=new Float32Array(16*r.bones.length),i=0;i<r.bones.length;++i)n.push(T.get(r.bones[i])),r.boneInverses[i].toArray(s,16*i);void 0===C.skins&&(C.skins=[]),C.skins.push({inverseBindMatrices:V(new THREE.BufferAttribute(s,16)),joints:n,skeleton:T.get(a)}),t.skin=C.skins.length-1}}}(h[r]);for(r=0;r<c.animations.length;++r)!function(e,t){C.animations||(C.animations=[]);for(var r=(e=THREE.GLTFExporter.Utils.mergeMorphTargetTracks(e.clone(),t)).tracks,a=[],n=[],s=0;s<r.length;++s){var i=r[s],o=THREE.PropertyBinding.parseTrackName(i.name),l=THREE.PropertyBinding.findNode(t,o.nodeName),u=PATH_PROPERTIES[o.propertyName];if("bones"===o.objectName&&(l=!0===l.isSkinnedMesh?l.skeleton.getBoneByName(o.objectIndex):void 0),!l||!u)return console.warn('THREE.GLTFExporter: Could not export animation track "%s".',i.name);var p,E=i.values.length/i.times.length;u===PATH_PROPERTIES.morphTargetInfluences&&(E/=l.morphTargetInfluences.length),!0===i.createInterpolant.isInterpolantFactoryMethodGLTFCubicSpline?(p="CUBICSPLINE",E/=3):p=i.getInterpolation()===THREE.InterpolateDiscrete?"STEP":"LINEAR",n.push({input:V(new THREE.BufferAttribute(i.times,1)),output:V(new THREE.BufferAttribute(i.values,E)),interpolation:p}),a.push({sampler:n.length-1,target:{node:T.get(l),path:u}})}C.animations.push({name:e.name||"clip_"+C.animations.length,samplers:n,channels:a}),C.animations.length}(c.animations[r],e[0])}(e),Promise.all(f).then(function(){var u,e=new Blob(r,{type:"application/octet-stream"}),t=Object.keys(P);0<t.length&&(C.extensionsUsed=t),C.buffers&&0<C.buffers.length&&(C.buffers[0].byteLength=e.size),!0===c.binary?((u=new window.FileReader).readAsArrayBuffer(e),u.onloadend=function(){var e=d(u.result),t=new DataView(new ArrayBuffer(8));t.setUint32(0,e.byteLength,!0),t.setUint32(4,5130562,!0);var r=d(function(e){if(void 0!==window.TextEncoder)return(new TextEncoder).encode(e).buffer;for(var t=new Uint8Array(new ArrayBuffer(e.length)),r=0,a=e.length;r<a;r++){var n=e.charCodeAt(r);t[r]=255<n?32:n}return t.buffer}(JSON.stringify(C)),32),a=new DataView(new ArrayBuffer(8));a.setUint32(0,r.byteLength,!0),a.setUint32(4,1313821514,!0);var n=new ArrayBuffer(12),s=new DataView(n);s.setUint32(0,1179937895,!0),s.setUint32(4,2,!0);var i=12+a.byteLength+r.byteLength+t.byteLength+e.byteLength;s.setUint32(8,i,!0);var o=new Blob([n,a,r,t,e],{type:"application/octet-stream"}),l=new window.FileReader;l.readAsArrayBuffer(o),l.onloadend=function(){p(l.result)}}):C.buffers&&0<C.buffers.length?((u=new window.FileReader).readAsDataURL(e),u.onloadend=function(){var e=u.result;C.buffers[0].uri=e,p(C)}):p(C)})}},THREE.GLTFExporter.Utils={insertKeyframe:function(e,t){var r,a=e.getValueSize(),n=new e.TimeBufferType(e.times.length+1),s=new e.ValueBufferType(e.values.length+a),i=e.createInterpolant(new e.ValueBufferType(a));if(0===e.times.length){n[0]=t;for(var o=0;o<a;o++)s[o]=0;r=0}else if(t<e.times[0]){if(Math.abs(e.times[0]-t)<.001)return 0;n[0]=t,n.set(e.times,1),s.set(i.evaluate(t),0),s.set(e.values,a),r=0}else if(t>e.times[e.times.length-1]){if(Math.abs(e.times[e.times.length-1]-t)<.001)return e.times.length-1;n[n.length-1]=t,n.set(e.times,0),s.set(e.values,0),s.set(i.evaluate(t),e.values.length),r=n.length-1}else for(o=0;o<e.times.length;o++){if(Math.abs(e.times[o]-t)<.001)return o;if(e.times[o]<t&&e.times[o+1]>t){n.set(e.times.slice(0,o+1),0),n[o+1]=t,n.set(e.times.slice(o+1),o+2),s.set(e.values.slice(0,(o+1)*a),0),s.set(i.evaluate(t),(o+1)*a),s.set(e.values.slice((o+1)*a),(o+2)*a),r=o+1;break}}return e.times=n,e.values=s,r},mergeMorphTargetTracks:function(e,t){for(var r=[],a={},n=e.tracks,s=0;s<n.length;++s){var i=n[s],o=THREE.PropertyBinding.parseTrackName(i.name),l=THREE.PropertyBinding.findNode(t,o.nodeName);if("morphTargetInfluences"===o.propertyName&&void 0!==o.propertyIndex){if(i.createInterpolant!==i.InterpolantFactoryMethodDiscrete&&i.createInterpolant!==i.InterpolantFactoryMethodLinear){if(i.createInterpolant.isInterpolantFactoryMethodGLTFCubicSpline)throw new Error("THREE.GLTFExporter: Cannot merge tracks with glTF CUBICSPLINE interpolation.");console.warn("THREE.GLTFExporter: Morph target interpolation mode not yet supported. Using LINEAR instead."),(i=i.clone()).setInterpolation(THREE.InterpolateLinear)}var u=l.morphTargetInfluences.length,p=l.morphTargetDictionary[o.propertyIndex];if(void 0===p)throw new Error("THREE.GLTFExporter: Morph target name not found: "+o.propertyIndex);if(void 0!==a[l.uuid]){for(var E=i.createInterpolant(new i.ValueBufferType(1)),c=a[l.uuid],m=0;m<c.times.length;m++)c.values[m*u+p]=E.evaluate(c.times[m]);for(m=0;m<i.times.length;m++){var f=this.insertKeyframe(c,i.times[m]);c.values[f*u+p]=i.values[m]}}else{for(var T=new((c=i.clone()).ValueBufferType)(u*c.times.length),m=0;m<c.times.length;m++)T[m*u+p]=c.values[m];c.name=o.nodeName+".morphTargetInfluences",c.values=T,a[l.uuid]=c,r.push(c)}}else r.push(i)}return e.tracks=r,e}};
+console.warn( "THREE.GLTFExporter: As part of the transition to ES6 Modules, the files in 'examples/js' were deprecated in May 2020 (r117) and will be deleted in December 2020 (r124). You can find more information about developing using ES6 Modules in https://threejs.org/docs/#manual/en/introduction/Installation." );
+/**
+ * @author fernandojsg / http://fernandojsg.com
+ * @author Don McCurdy / https://www.donmccurdy.com
+ * @author Takahiro / https://github.com/takahirox
+ */
+
+//------------------------------------------------------------------------------
+// Constants
+//------------------------------------------------------------------------------
+var WEBGL_CONSTANTS = {
+	POINTS: 0x0000,
+	LINES: 0x0001,
+	LINE_LOOP: 0x0002,
+	LINE_STRIP: 0x0003,
+	TRIANGLES: 0x0004,
+	TRIANGLE_STRIP: 0x0005,
+	TRIANGLE_FAN: 0x0006,
+
+	UNSIGNED_BYTE: 0x1401,
+	UNSIGNED_SHORT: 0x1403,
+	FLOAT: 0x1406,
+	UNSIGNED_INT: 0x1405,
+	ARRAY_BUFFER: 0x8892,
+	ELEMENT_ARRAY_BUFFER: 0x8893,
+
+	NEAREST: 0x2600,
+	LINEAR: 0x2601,
+	NEAREST_MIPMAP_NEAREST: 0x2700,
+	LINEAR_MIPMAP_NEAREST: 0x2701,
+	NEAREST_MIPMAP_LINEAR: 0x2702,
+	LINEAR_MIPMAP_LINEAR: 0x2703,
+
+	CLAMP_TO_EDGE: 33071,
+	MIRRORED_REPEAT: 33648,
+	REPEAT: 10497
+};
+
+var THREE_TO_WEBGL = {};
+
+THREE_TO_WEBGL[ THREE.NearestFilter ] = WEBGL_CONSTANTS.NEAREST;
+THREE_TO_WEBGL[ THREE.NearestMipmapNearestFilter ] = WEBGL_CONSTANTS.NEAREST_MIPMAP_NEAREST;
+THREE_TO_WEBGL[ THREE.NearestMipmapLinearFilter ] = WEBGL_CONSTANTS.NEAREST_MIPMAP_LINEAR;
+THREE_TO_WEBGL[ THREE.LinearFilter ] = WEBGL_CONSTANTS.LINEAR;
+THREE_TO_WEBGL[ THREE.LinearMipmapNearestFilter ] = WEBGL_CONSTANTS.LINEAR_MIPMAP_NEAREST;
+THREE_TO_WEBGL[ THREE.LinearMipmapLinearFilter ] = WEBGL_CONSTANTS.LINEAR_MIPMAP_LINEAR;
+
+THREE_TO_WEBGL[ THREE.ClampToEdgeWrapping ] = WEBGL_CONSTANTS.CLAMP_TO_EDGE;
+THREE_TO_WEBGL[ THREE.RepeatWrapping ] = WEBGL_CONSTANTS.REPEAT;
+THREE_TO_WEBGL[ THREE.MirroredRepeatWrapping ] = WEBGL_CONSTANTS.MIRRORED_REPEAT;
+
+var PATH_PROPERTIES = {
+	scale: 'scale',
+	position: 'translation',
+	quaternion: 'rotation',
+	morphTargetInfluences: 'weights'
+};
+
+//------------------------------------------------------------------------------
+// GLTF Exporter
+//------------------------------------------------------------------------------
+THREE.GLTFExporter = function () {};
+
+THREE.GLTFExporter.prototype = {
+
+	constructor: THREE.GLTFExporter,
+
+	/**
+	 * Parse scenes and generate GLTF output
+	 * @param  {THREE.Scene or [THREE.Scenes]} input   THREE.Scene or Array of THREE.Scenes
+	 * @param  {Function} onDone  Callback on completed
+	 * @param  {Object} options options
+	 */
+	parse: function ( input, onDone, options ) {
+
+		var DEFAULT_OPTIONS = {
+			binary: false,
+			trs: false,
+			onlyVisible: true,
+			truncateDrawRange: true,
+			embedImages: true,
+			maxTextureSize: Infinity,
+			animations: [],
+			forcePowerOfTwoTextures: false,
+			includeCustomExtensions: false
+		};
+
+		options = Object.assign( {}, DEFAULT_OPTIONS, options );
+
+		if ( options.animations.length > 0 ) {
+
+			// Only TRS properties, and not matrices, may be targeted by animation.
+			options.trs = true;
+
+		}
+
+		var outputJSON = {
+
+			asset: {
+
+				version: "2.0",
+				generator: "THREE.GLTFExporter"
+
+			}
+
+		};
+
+		var byteOffset = 0;
+		var buffers = [];
+		var pending = [];
+		var nodeMap = new Map();
+		var skins = [];
+		var extensionsUsed = {};
+		var cachedData = {
+
+			meshes: new Map(),
+			attributes: new Map(),
+			attributesNormalized: new Map(),
+			materials: new Map(),
+			textures: new Map(),
+			images: new Map()
+
+		};
+
+		var cachedCanvas;
+
+		var uids = new Map();
+		var uid = 0;
+
+		/**
+		 * Assign and return a temporal unique id for an object
+		 * especially which doesn't have .uuid
+		 * @param  {Object} object
+		 * @return {Integer}
+		 */
+		function getUID( object ) {
+
+			if ( ! uids.has( object ) ) uids.set( object, uid ++ );
+
+			return uids.get( object );
+
+		}
+
+		/**
+		 * Compare two arrays
+		 * @param  {Array} array1 Array 1 to compare
+		 * @param  {Array} array2 Array 2 to compare
+		 * @return {Boolean}        Returns true if both arrays are equal
+		 */
+		function equalArray( array1, array2 ) {
+
+			return ( array1.length === array2.length ) && array1.every( function ( element, index ) {
+
+				return element === array2[ index ];
+
+			} );
+
+		}
+
+		/**
+		 * Converts a string to an ArrayBuffer.
+		 * @param  {string} text
+		 * @return {ArrayBuffer}
+		 */
+		function stringToArrayBuffer( text ) {
+
+			if ( window.TextEncoder !== undefined ) {
+
+				return new TextEncoder().encode( text ).buffer;
+
+			}
+
+			var array = new Uint8Array( new ArrayBuffer( text.length ) );
+
+			for ( var i = 0, il = text.length; i < il; i ++ ) {
+
+				var value = text.charCodeAt( i );
+
+				// Replacing multi-byte character with space(0x20).
+				array[ i ] = value > 0xFF ? 0x20 : value;
+
+			}
+
+			return array.buffer;
+
+		}
+
+		/**
+		 * Get the min and max vectors from the given attribute
+		 * @param  {THREE.BufferAttribute} attribute Attribute to find the min/max in range from start to start + count
+		 * @param  {Integer} start
+		 * @param  {Integer} count
+		 * @return {Object} Object containing the `min` and `max` values (As an array of attribute.itemSize components)
+		 */
+		function getMinMax( attribute, start, count ) {
+
+			var output = {
+
+				min: new Array( attribute.itemSize ).fill( Number.POSITIVE_INFINITY ),
+				max: new Array( attribute.itemSize ).fill( Number.NEGATIVE_INFINITY )
+
+			};
+
+			for ( var i = start; i < start + count; i ++ ) {
+
+				for ( var a = 0; a < attribute.itemSize; a ++ ) {
+
+					var value = attribute.array[ i * attribute.itemSize + a ];
+					output.min[ a ] = Math.min( output.min[ a ], value );
+					output.max[ a ] = Math.max( output.max[ a ], value );
+
+				}
+
+			}
+
+			return output;
+
+		}
+
+		/**
+		 * Checks if image size is POT.
+		 *
+		 * @param {Image} image The image to be checked.
+		 * @returns {Boolean} Returns true if image size is POT.
+		 *
+		 */
+		function isPowerOfTwo( image ) {
+
+			return THREE.MathUtils.isPowerOfTwo( image.width ) && THREE.MathUtils.isPowerOfTwo( image.height );
+
+		}
+
+		/**
+		 * Checks if normal attribute values are normalized.
+		 *
+		 * @param {THREE.BufferAttribute} normal
+		 * @returns {Boolean}
+		 *
+		 */
+		function isNormalizedNormalAttribute( normal ) {
+
+			if ( cachedData.attributesNormalized.has( normal ) ) {
+
+				return false;
+
+			}
+
+			var v = new THREE.Vector3();
+
+			for ( var i = 0, il = normal.count; i < il; i ++ ) {
+
+				// 0.0005 is from glTF-validator
+				if ( Math.abs( v.fromArray( normal.array, i * 3 ).length() - 1.0 ) > 0.0005 ) return false;
+
+			}
+
+			return true;
+
+		}
+
+		/**
+		 * Creates normalized normal buffer attribute.
+		 *
+		 * @param {THREE.BufferAttribute} normal
+		 * @returns {THREE.BufferAttribute}
+		 *
+		 */
+		function createNormalizedNormalAttribute( normal ) {
+
+			if ( cachedData.attributesNormalized.has( normal ) ) {
+
+				return cachedData.attributesNormalized.get( normal );
+
+			}
+
+			var attribute = normal.clone();
+
+			var v = new THREE.Vector3();
+
+			for ( var i = 0, il = attribute.count; i < il; i ++ ) {
+
+				v.fromArray( attribute.array, i * 3 );
+
+				if ( v.x === 0 && v.y === 0 && v.z === 0 ) {
+
+					// if values can't be normalized set (1, 0, 0)
+					v.setX( 1.0 );
+
+				} else {
+
+					v.normalize();
+
+				}
+
+				v.toArray( attribute.array, i * 3 );
+
+			}
+
+			cachedData.attributesNormalized.set( normal, attribute );
+
+			return attribute;
+
+		}
+
+		/**
+		 * Get the required size + padding for a buffer, rounded to the next 4-byte boundary.
+		 * https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#data-alignment
+		 *
+		 * @param {Integer} bufferSize The size the original buffer.
+		 * @returns {Integer} new buffer size with required padding.
+		 *
+		 */
+		function getPaddedBufferSize( bufferSize ) {
+
+			return Math.ceil( bufferSize / 4 ) * 4;
+
+		}
+
+		/**
+		 * Returns a buffer aligned to 4-byte boundary.
+		 *
+		 * @param {ArrayBuffer} arrayBuffer Buffer to pad
+		 * @param {Integer} paddingByte (Optional)
+		 * @returns {ArrayBuffer} The same buffer if it's already aligned to 4-byte boundary or a new buffer
+		 */
+		function getPaddedArrayBuffer( arrayBuffer, paddingByte ) {
+
+			paddingByte = paddingByte || 0;
+
+			var paddedLength = getPaddedBufferSize( arrayBuffer.byteLength );
+
+			if ( paddedLength !== arrayBuffer.byteLength ) {
+
+				var array = new Uint8Array( paddedLength );
+				array.set( new Uint8Array( arrayBuffer ) );
+
+				if ( paddingByte !== 0 ) {
+
+					for ( var i = arrayBuffer.byteLength; i < paddedLength; i ++ ) {
+
+						array[ i ] = paddingByte;
+
+					}
+
+				}
+
+				return array.buffer;
+
+			}
+
+			return arrayBuffer;
+
+		}
+
+		/**
+		 * Serializes a userData.
+		 *
+		 * @param {THREE.Object3D|THREE.Material} object
+		 * @param {Object} gltfProperty
+		 */
+		function serializeUserData( object, gltfProperty ) {
+
+			if ( Object.keys( object.userData ).length === 0 ) {
+
+				return;
+
+			}
+
+			try {
+
+				var json = JSON.parse( JSON.stringify( object.userData ) );
+
+				if ( options.includeCustomExtensions && json.gltfExtensions ) {
+
+					if ( gltfProperty.extensions === undefined ) {
+
+						gltfProperty.extensions = {};
+
+					}
+
+					for ( var extensionName in json.gltfExtensions ) {
+
+						gltfProperty.extensions[ extensionName ] = json.gltfExtensions[ extensionName ];
+						extensionsUsed[ extensionName ] = true;
+
+					}
+
+					delete json.gltfExtensions;
+
+				}
+
+				if ( Object.keys( json ).length > 0 ) {
+
+					gltfProperty.extras = json;
+
+				}
+
+			} catch ( error ) {
+
+				console.warn( 'THREE.GLTFExporter: userData of \'' + object.name + '\' ' +
+					'won\'t be serialized because of JSON.stringify error - ' + error.message );
+
+			}
+
+		}
+
+		/**
+		 * Applies a texture transform, if present, to the map definition. Requires
+		 * the KHR_texture_transform extension.
+		 */
+		function applyTextureTransform( mapDef, texture ) {
+
+			var didTransform = false;
+			var transformDef = {};
+
+			if ( texture.offset.x !== 0 || texture.offset.y !== 0 ) {
+
+				transformDef.offset = texture.offset.toArray();
+				didTransform = true;
+
+			}
+
+			if ( texture.rotation !== 0 ) {
+
+				transformDef.rotation = texture.rotation;
+				didTransform = true;
+
+			}
+
+			if ( texture.repeat.x !== 1 || texture.repeat.y !== 1 ) {
+
+				transformDef.scale = texture.repeat.toArray();
+				didTransform = true;
+
+			}
+
+			if ( didTransform ) {
+
+				mapDef.extensions = mapDef.extensions || {};
+				mapDef.extensions[ 'KHR_texture_transform' ] = transformDef;
+				extensionsUsed[ 'KHR_texture_transform' ] = true;
+
+			}
+
+		}
+
+		/**
+		 * Process a buffer to append to the default one.
+		 * @param  {ArrayBuffer} buffer
+		 * @return {Integer}
+		 */
+		function processBuffer( buffer ) {
+
+			if ( ! outputJSON.buffers ) {
+
+				outputJSON.buffers = [ { byteLength: 0 } ];
+
+			}
+
+			// All buffers are merged before export.
+			buffers.push( buffer );
+
+			return 0;
+
+		}
+
+		/**
+		 * Process and generate a BufferView
+		 * @param  {THREE.BufferAttribute} attribute
+		 * @param  {number} componentType
+		 * @param  {number} start
+		 * @param  {number} count
+		 * @param  {number} target (Optional) Target usage of the BufferView
+		 * @return {Object}
+		 */
+		function processBufferView( attribute, componentType, start, count, target ) {
+
+			if ( ! outputJSON.bufferViews ) {
+
+				outputJSON.bufferViews = [];
+
+			}
+
+			// Create a new dataview and dump the attribute's array into it
+
+			var componentSize;
+
+			if ( componentType === WEBGL_CONSTANTS.UNSIGNED_BYTE ) {
+
+				componentSize = 1;
+
+			} else if ( componentType === WEBGL_CONSTANTS.UNSIGNED_SHORT ) {
+
+				componentSize = 2;
+
+			} else {
+
+				componentSize = 4;
+
+			}
+
+			var byteLength = getPaddedBufferSize( count * attribute.itemSize * componentSize );
+			var dataView = new DataView( new ArrayBuffer( byteLength ) );
+			var offset = 0;
+
+			for ( var i = start; i < start + count; i ++ ) {
+
+				for ( var a = 0; a < attribute.itemSize; a ++ ) {
+
+					var value;
+
+					if ( attribute.itemSize > 4 ) {
+
+						 // no support for interleaved data for itemSize > 4
+
+						value = attribute.array[ i * attribute.itemSize + a ];
+
+					} else {
+
+						if ( a === 0 ) value = attribute.getX( i );
+						else if ( a === 1 ) value = attribute.getY( i );
+						else if ( a === 2 ) value = attribute.getZ( i );
+						else if ( a === 3 ) value = attribute.getW( i );
+
+					}
+
+					if ( componentType === WEBGL_CONSTANTS.FLOAT ) {
+
+						dataView.setFloat32( offset, value, true );
+
+					} else if ( componentType === WEBGL_CONSTANTS.UNSIGNED_INT ) {
+
+						dataView.setUint32( offset, value, true );
+
+					} else if ( componentType === WEBGL_CONSTANTS.UNSIGNED_SHORT ) {
+
+						dataView.setUint16( offset, value, true );
+
+					} else if ( componentType === WEBGL_CONSTANTS.UNSIGNED_BYTE ) {
+
+						dataView.setUint8( offset, value );
+
+					}
+
+					offset += componentSize;
+
+				}
+
+			}
+
+			var gltfBufferView = {
+
+				buffer: processBuffer( dataView.buffer ),
+				byteOffset: byteOffset,
+				byteLength: byteLength
+
+			};
+
+			if ( target !== undefined ) gltfBufferView.target = target;
+
+			if ( target === WEBGL_CONSTANTS.ARRAY_BUFFER ) {
+
+				// Only define byteStride for vertex attributes.
+				gltfBufferView.byteStride = attribute.itemSize * componentSize;
+
+			}
+
+			byteOffset += byteLength;
+
+			outputJSON.bufferViews.push( gltfBufferView );
+
+			// @TODO Merge bufferViews where possible.
+			var output = {
+
+				id: outputJSON.bufferViews.length - 1,
+				byteLength: 0
+
+			};
+
+			return output;
+
+		}
+
+		/**
+		 * Process and generate a BufferView from an image Blob.
+		 * @param {Blob} blob
+		 * @return {Promise<Integer>}
+		 */
+		function processBufferViewImage( blob ) {
+
+			if ( ! outputJSON.bufferViews ) {
+
+				outputJSON.bufferViews = [];
+
+			}
+
+			return new Promise( function ( resolve ) {
+
+				var reader = new window.FileReader();
+				reader.readAsArrayBuffer( blob );
+				reader.onloadend = function () {
+
+					var buffer = getPaddedArrayBuffer( reader.result );
+
+					var bufferView = {
+						buffer: processBuffer( buffer ),
+						byteOffset: byteOffset,
+						byteLength: buffer.byteLength
+					};
+
+					byteOffset += buffer.byteLength;
+
+					outputJSON.bufferViews.push( bufferView );
+
+					resolve( outputJSON.bufferViews.length - 1 );
+
+				};
+
+			} );
+
+		}
+
+		/**
+		 * Process attribute to generate an accessor
+		 * @param  {THREE.BufferAttribute} attribute Attribute to process
+		 * @param  {THREE.BufferGeometry} geometry (Optional) Geometry used for truncated draw range
+		 * @param  {Integer} start (Optional)
+		 * @param  {Integer} count (Optional)
+		 * @return {Integer}           Index of the processed accessor on the "accessors" array
+		 */
+		function processAccessor( attribute, geometry, start, count ) {
+
+			var types = {
+
+				1: 'SCALAR',
+				2: 'VEC2',
+				3: 'VEC3',
+				4: 'VEC4',
+				16: 'MAT4'
+
+			};
+
+			var componentType;
+
+			// Detect the component type of the attribute array (float, uint or ushort)
+			if ( attribute.array.constructor === Float32Array ) {
+
+				componentType = WEBGL_CONSTANTS.FLOAT;
+
+			} else if ( attribute.array.constructor === Uint32Array ) {
+
+				componentType = WEBGL_CONSTANTS.UNSIGNED_INT;
+
+			} else if ( attribute.array.constructor === Uint16Array ) {
+
+				componentType = WEBGL_CONSTANTS.UNSIGNED_SHORT;
+
+			} else if ( attribute.array.constructor === Uint8Array ) {
+
+				componentType = WEBGL_CONSTANTS.UNSIGNED_BYTE;
+
+			} else {
+
+				throw new Error( 'THREE.GLTFExporter: Unsupported bufferAttribute component type.' );
+
+			}
+
+			if ( start === undefined ) start = 0;
+			if ( count === undefined ) count = attribute.count;
+
+			// @TODO Indexed buffer geometry with drawRange not supported yet
+			if ( options.truncateDrawRange && geometry !== undefined && geometry.index === null ) {
+
+				var end = start + count;
+				var end2 = geometry.drawRange.count === Infinity
+					? attribute.count
+					: geometry.drawRange.start + geometry.drawRange.count;
+
+				start = Math.max( start, geometry.drawRange.start );
+				count = Math.min( end, end2 ) - start;
+
+				if ( count < 0 ) count = 0;
+
+			}
+
+			// Skip creating an accessor if the attribute doesn't have data to export
+			if ( count === 0 ) {
+
+				return null;
+
+			}
+
+			var minMax = getMinMax( attribute, start, count );
+
+			var bufferViewTarget;
+
+			// If geometry isn't provided, don't infer the target usage of the bufferView. For
+			// animation samplers, target must not be set.
+			if ( geometry !== undefined ) {
+
+				bufferViewTarget = attribute === geometry.index ? WEBGL_CONSTANTS.ELEMENT_ARRAY_BUFFER : WEBGL_CONSTANTS.ARRAY_BUFFER;
+
+			}
+
+			var bufferView = processBufferView( attribute, componentType, start, count, bufferViewTarget );
+
+			var gltfAccessor = {
+
+				bufferView: bufferView.id,
+				byteOffset: bufferView.byteOffset,
+				componentType: componentType,
+				count: count,
+				max: minMax.max,
+				min: minMax.min,
+				type: types[ attribute.itemSize ]
+
+			};
+
+			if ( attribute.normalized === true ) {
+
+				gltfAccessor.normalized = true;
+
+			}
+
+			if ( ! outputJSON.accessors ) {
+
+				outputJSON.accessors = [];
+
+			}
+
+			outputJSON.accessors.push( gltfAccessor );
+
+			return outputJSON.accessors.length - 1;
+
+		}
+
+		/**
+		 * Process image
+		 * @param  {Image} image to process
+		 * @param  {Integer} format of the image (e.g. THREE.RGBFormat, THREE.RGBAFormat etc)
+		 * @param  {Boolean} flipY before writing out the image
+		 * @return {Integer}     Index of the processed texture in the "images" array
+		 */
+		function processImage( image, format, flipY ) {
+
+			if ( ! cachedData.images.has( image ) ) {
+
+				cachedData.images.set( image, {} );
+
+			}
+
+			var cachedImages = cachedData.images.get( image );
+			var mimeType = format === THREE.RGBAFormat ? 'image/png' : 'image/jpeg';
+			var key = mimeType + ":flipY/" + flipY.toString();
+
+			if ( cachedImages[ key ] !== undefined ) {
+
+				return cachedImages[ key ];
+
+			}
+
+			if ( ! outputJSON.images ) {
+
+				outputJSON.images = [];
+
+			}
+
+			var gltfImage = { mimeType: mimeType };
+
+			if ( options.embedImages ) {
+
+				var canvas = cachedCanvas = cachedCanvas || document.createElement( 'canvas' );
+
+				canvas.width = Math.min( image.width, options.maxTextureSize );
+				canvas.height = Math.min( image.height, options.maxTextureSize );
+
+				if ( options.forcePowerOfTwoTextures && ! isPowerOfTwo( canvas ) ) {
+
+					console.warn( 'GLTFExporter: Resized non-power-of-two image.', image );
+
+					canvas.width = THREE.MathUtils.floorPowerOfTwo( canvas.width );
+					canvas.height = THREE.MathUtils.floorPowerOfTwo( canvas.height );
+
+				}
+
+				var ctx = canvas.getContext( '2d' );
+
+				if ( flipY === true ) {
+
+					ctx.translate( 0, canvas.height );
+					ctx.scale( 1, - 1 );
+
+				}
+
+				ctx.drawImage( image, 0, 0, canvas.width, canvas.height );
+
+				if ( options.binary === true ) {
+
+					pending.push( new Promise( function ( resolve ) {
+
+						canvas.toBlob( function ( blob ) {
+
+							processBufferViewImage( blob ).then( function ( bufferViewIndex ) {
+
+								gltfImage.bufferView = bufferViewIndex;
+
+								resolve();
+
+							} );
+
+						}, mimeType );
+
+					} ) );
+
+				} else {
+
+					gltfImage.uri = canvas.toDataURL( mimeType );
+
+				}
+
+			} else {
+
+				gltfImage.uri = image.src;
+
+			}
+
+			outputJSON.images.push( gltfImage );
+
+			var index = outputJSON.images.length - 1;
+			cachedImages[ key ] = index;
+
+			return index;
+
+		}
+
+		/**
+		 * Process sampler
+		 * @param  {Texture} map Texture to process
+		 * @return {Integer}     Index of the processed texture in the "samplers" array
+		 */
+		function processSampler( map ) {
+
+			if ( ! outputJSON.samplers ) {
+
+				outputJSON.samplers = [];
+
+			}
+
+			var gltfSampler = {
+
+				magFilter: THREE_TO_WEBGL[ map.magFilter ],
+				minFilter: THREE_TO_WEBGL[ map.minFilter ],
+				wrapS: THREE_TO_WEBGL[ map.wrapS ],
+				wrapT: THREE_TO_WEBGL[ map.wrapT ]
+
+			};
+
+			outputJSON.samplers.push( gltfSampler );
+
+			return outputJSON.samplers.length - 1;
+
+		}
+
+		/**
+		 * Process texture
+		 * @param  {Texture} map Map to process
+		 * @return {Integer}     Index of the processed texture in the "textures" array
+		 */
+		function processTexture( map ) {
+
+			if ( cachedData.textures.has( map ) ) {
+
+				return cachedData.textures.get( map );
+
+			}
+
+			if ( ! outputJSON.textures ) {
+
+				outputJSON.textures = [];
+
+			}
+
+			var gltfTexture = {
+
+				sampler: processSampler( map ),
+				source: processImage( map.image, map.format, map.flipY )
+
+			};
+
+			if ( map.name ) {
+
+				gltfTexture.name = map.name;
+
+			}
+
+			outputJSON.textures.push( gltfTexture );
+
+			var index = outputJSON.textures.length - 1;
+			cachedData.textures.set( map, index );
+
+			return index;
+
+		}
+
+		/**
+		 * Process material
+		 * @param  {THREE.Material} material Material to process
+		 * @return {Integer}      Index of the processed material in the "materials" array
+		 */
+		function processMaterial( material ) {
+
+			if ( cachedData.materials.has( material ) ) {
+
+				return cachedData.materials.get( material );
+
+			}
+
+			if ( material.isShaderMaterial ) {
+
+				console.warn( 'GLTFExporter: THREE.ShaderMaterial not supported.' );
+				return null;
+
+			}
+
+			if ( ! outputJSON.materials ) {
+
+				outputJSON.materials = [];
+
+			}
+
+			// @QUESTION Should we avoid including any attribute that has the default value?
+			var gltfMaterial = {
+
+				pbrMetallicRoughness: {}
+
+			};
+
+			if ( material.isMeshBasicMaterial ) {
+
+				gltfMaterial.extensions = { KHR_materials_unlit: {} };
+
+				extensionsUsed[ 'KHR_materials_unlit' ] = true;
+
+			} else if ( material.isGLTFSpecularGlossinessMaterial ) {
+
+				gltfMaterial.extensions = { KHR_materials_pbrSpecularGlossiness: {} };
+
+				extensionsUsed[ 'KHR_materials_pbrSpecularGlossiness' ] = true;
+
+			} else if ( ! material.isMeshStandardMaterial ) {
+
+				console.warn( 'GLTFExporter: Use MeshStandardMaterial or MeshBasicMaterial for best results.' );
+
+			}
+
+			// pbrMetallicRoughness.baseColorFactor
+			var color = material.color.toArray().concat( [ material.opacity ] );
+
+			if ( ! equalArray( color, [ 1, 1, 1, 1 ] ) ) {
+
+				gltfMaterial.pbrMetallicRoughness.baseColorFactor = color;
+
+			}
+
+			if ( material.isMeshStandardMaterial ) {
+
+				gltfMaterial.pbrMetallicRoughness.metallicFactor = material.metalness;
+				gltfMaterial.pbrMetallicRoughness.roughnessFactor = material.roughness;
+
+			} else if ( material.isMeshBasicMaterial ) {
+
+				gltfMaterial.pbrMetallicRoughness.metallicFactor = 0.0;
+				gltfMaterial.pbrMetallicRoughness.roughnessFactor = 0.9;
+
+			} else {
+
+				gltfMaterial.pbrMetallicRoughness.metallicFactor = 0.5;
+				gltfMaterial.pbrMetallicRoughness.roughnessFactor = 0.5;
+
+			}
+
+			// pbrSpecularGlossiness diffuse, specular and glossiness factor
+			if ( material.isGLTFSpecularGlossinessMaterial ) {
+
+				if ( gltfMaterial.pbrMetallicRoughness.baseColorFactor ) {
+
+					gltfMaterial.extensions.KHR_materials_pbrSpecularGlossiness.diffuseFactor = gltfMaterial.pbrMetallicRoughness.baseColorFactor;
+
+				}
+
+				var specularFactor = [ 1, 1, 1 ];
+				material.specular.toArray( specularFactor, 0 );
+				gltfMaterial.extensions.KHR_materials_pbrSpecularGlossiness.specularFactor = specularFactor;
+
+				gltfMaterial.extensions.KHR_materials_pbrSpecularGlossiness.glossinessFactor = material.glossiness;
+
+			}
+
+			// pbrMetallicRoughness.metallicRoughnessTexture
+			if ( material.metalnessMap || material.roughnessMap ) {
+
+				if ( material.metalnessMap === material.roughnessMap ) {
+
+					var metalRoughMapDef = { index: processTexture( material.metalnessMap ) };
+					applyTextureTransform( metalRoughMapDef, material.metalnessMap );
+					gltfMaterial.pbrMetallicRoughness.metallicRoughnessTexture = metalRoughMapDef;
+
+				} else {
+
+					console.warn( 'THREE.GLTFExporter: Ignoring metalnessMap and roughnessMap because they are not the same Texture.' );
+
+				}
+
+			}
+
+			// pbrMetallicRoughness.baseColorTexture or pbrSpecularGlossiness diffuseTexture
+			if ( material.map ) {
+
+				var baseColorMapDef = { index: processTexture( material.map ) };
+				applyTextureTransform( baseColorMapDef, material.map );
+
+				if ( material.isGLTFSpecularGlossinessMaterial ) {
+
+					gltfMaterial.extensions.KHR_materials_pbrSpecularGlossiness.diffuseTexture = baseColorMapDef;
+
+				}
+
+				gltfMaterial.pbrMetallicRoughness.baseColorTexture = baseColorMapDef;
+
+			}
+
+			// pbrSpecularGlossiness specular map
+			if ( material.isGLTFSpecularGlossinessMaterial && material.specularMap ) {
+
+				var specularMapDef = { index: processTexture( material.specularMap ) };
+				applyTextureTransform( specularMapDef, material.specularMap );
+				gltfMaterial.extensions.KHR_materials_pbrSpecularGlossiness.specularGlossinessTexture = specularMapDef;
+
+			}
+
+			if ( material.emissive ) {
+
+				// emissiveFactor
+				var emissive = material.emissive.clone().multiplyScalar( material.emissiveIntensity ).toArray();
+
+				if ( ! equalArray( emissive, [ 0, 0, 0 ] ) ) {
+
+					gltfMaterial.emissiveFactor = emissive;
+
+				}
+
+				// emissiveTexture
+				if ( material.emissiveMap ) {
+
+					var emissiveMapDef = { index: processTexture( material.emissiveMap ) };
+					applyTextureTransform( emissiveMapDef, material.emissiveMap );
+					gltfMaterial.emissiveTexture = emissiveMapDef;
+
+				}
+
+			}
+
+			// normalTexture
+			if ( material.normalMap ) {
+
+				var normalMapDef = { index: processTexture( material.normalMap ) };
+
+				if ( material.normalScale && material.normalScale.x !== - 1 ) {
+
+					if ( material.normalScale.x !== material.normalScale.y ) {
+
+						console.warn( 'THREE.GLTFExporter: Normal scale components are different, ignoring Y and exporting X.' );
+
+					}
+
+					normalMapDef.scale = material.normalScale.x;
+
+				}
+
+				applyTextureTransform( normalMapDef, material.normalMap );
+
+				gltfMaterial.normalTexture = normalMapDef;
+
+			}
+
+			// occlusionTexture
+			if ( material.aoMap ) {
+
+				var occlusionMapDef = {
+					index: processTexture( material.aoMap ),
+					texCoord: 1
+				};
+
+				if ( material.aoMapIntensity !== 1.0 ) {
+
+					occlusionMapDef.strength = material.aoMapIntensity;
+
+				}
+
+				applyTextureTransform( occlusionMapDef, material.aoMap );
+
+				gltfMaterial.occlusionTexture = occlusionMapDef;
+
+			}
+
+			// alphaMode
+			if ( material.transparent ) {
+
+				gltfMaterial.alphaMode = 'BLEND';
+
+			} else {
+
+				if ( material.alphaTest > 0.0 ) {
+
+					gltfMaterial.alphaMode = 'MASK';
+					gltfMaterial.alphaCutoff = material.alphaTest;
+
+				}
+
+			}
+
+			// doubleSided
+			if ( material.side === THREE.DoubleSide ) {
+
+				gltfMaterial.doubleSided = true;
+
+			}
+
+			if ( material.name !== '' ) {
+
+				gltfMaterial.name = material.name;
+
+			}
+
+			serializeUserData( material, gltfMaterial );
+
+			outputJSON.materials.push( gltfMaterial );
+
+			var index = outputJSON.materials.length - 1;
+			cachedData.materials.set( material, index );
+
+			return index;
+
+		}
+
+		/**
+		 * Process mesh
+		 * @param  {THREE.Mesh} mesh Mesh to process
+		 * @return {Integer}      Index of the processed mesh in the "meshes" array
+		 */
+		function processMesh( mesh ) {
+
+			var meshCacheKeyParts = [ mesh.geometry.uuid ];
+			if ( Array.isArray( mesh.material ) ) {
+
+				for ( var i = 0, l = mesh.material.length; i < l; i ++ ) {
+
+					meshCacheKeyParts.push( mesh.material[ i ].uuid	);
+
+				}
+
+			} else {
+
+				meshCacheKeyParts.push( mesh.material.uuid );
+
+			}
+
+			var meshCacheKey = meshCacheKeyParts.join( ':' );
+			if ( cachedData.meshes.has( meshCacheKey ) ) {
+
+				return cachedData.meshes.get( meshCacheKey );
+
+			}
+
+			var geometry = mesh.geometry;
+
+			var mode;
+
+			// Use the correct mode
+			if ( mesh.isLineSegments ) {
+
+				mode = WEBGL_CONSTANTS.LINES;
+
+			} else if ( mesh.isLineLoop ) {
+
+				mode = WEBGL_CONSTANTS.LINE_LOOP;
+
+			} else if ( mesh.isLine ) {
+
+				mode = WEBGL_CONSTANTS.LINE_STRIP;
+
+			} else if ( mesh.isPoints ) {
+
+				mode = WEBGL_CONSTANTS.POINTS;
+
+			} else {
+
+				mode = mesh.material.wireframe ? WEBGL_CONSTANTS.LINES : WEBGL_CONSTANTS.TRIANGLES;
+
+			}
+
+			if ( ! geometry.isBufferGeometry ) {
+
+				console.warn( 'GLTFExporter: Exporting THREE.Geometry will increase file size. Use THREE.BufferGeometry instead.' );
+				geometry = new THREE.BufferGeometry().setFromObject( mesh );
+
+			}
+
+			var gltfMesh = {};
+
+			var attributes = {};
+			var primitives = [];
+			var targets = [];
+
+			// Conversion between attributes names in threejs and gltf spec
+			var nameConversion = {
+
+				uv: 'TEXCOORD_0',
+				uv2: 'TEXCOORD_1',
+				color: 'COLOR_0',
+				skinWeight: 'WEIGHTS_0',
+				skinIndex: 'JOINTS_0'
+
+			};
+
+			var originalNormal = geometry.getAttribute( 'normal' );
+
+			if ( originalNormal !== undefined && ! isNormalizedNormalAttribute( originalNormal ) ) {
+
+				console.warn( 'THREE.GLTFExporter: Creating normalized normal attribute from the non-normalized one.' );
+
+				geometry.setAttribute( 'normal', createNormalizedNormalAttribute( originalNormal ) );
+
+			}
+
+			// @QUESTION Detect if .vertexColors = true?
+			// For every attribute create an accessor
+			var modifiedAttribute = null;
+			for ( var attributeName in geometry.attributes ) {
+
+				// Ignore morph target attributes, which are exported later.
+				if ( attributeName.substr( 0, 5 ) === 'morph' ) continue;
+
+				var attribute = geometry.attributes[ attributeName ];
+				attributeName = nameConversion[ attributeName ] || attributeName.toUpperCase();
+
+				// Prefix all geometry attributes except the ones specifically
+				// listed in the spec; non-spec attributes are considered custom.
+				var validVertexAttributes =
+						/^(POSITION|NORMAL|TANGENT|TEXCOORD_\d+|COLOR_\d+|JOINTS_\d+|WEIGHTS_\d+)$/;
+				if ( ! validVertexAttributes.test( attributeName ) ) {
+
+					attributeName = '_' + attributeName;
+
+				}
+
+				if ( cachedData.attributes.has( getUID( attribute ) ) ) {
+
+					attributes[ attributeName ] = cachedData.attributes.get( getUID( attribute ) );
+					continue;
+
+				}
+
+				// JOINTS_0 must be UNSIGNED_BYTE or UNSIGNED_SHORT.
+				modifiedAttribute = null;
+				var array = attribute.array;
+				if ( attributeName === 'JOINTS_0' &&
+					! ( array instanceof Uint16Array ) &&
+					! ( array instanceof Uint8Array ) ) {
+
+					console.warn( 'GLTFExporter: Attribute "skinIndex" converted to type UNSIGNED_SHORT.' );
+					modifiedAttribute = new THREE.BufferAttribute( new Uint16Array( array ), attribute.itemSize, attribute.normalized );
+
+				}
+
+				var accessor = processAccessor( modifiedAttribute || attribute, geometry );
+				if ( accessor !== null ) {
+
+					attributes[ attributeName ] = accessor;
+					cachedData.attributes.set( getUID( attribute ), accessor );
+
+				}
+
+			}
+
+			if ( originalNormal !== undefined ) geometry.setAttribute( 'normal', originalNormal );
+
+			// Skip if no exportable attributes found
+			if ( Object.keys( attributes ).length === 0 ) {
+
+				return null;
+
+			}
+
+			// Morph targets
+			if ( mesh.morphTargetInfluences !== undefined && mesh.morphTargetInfluences.length > 0 ) {
+
+				var weights = [];
+				var targetNames = [];
+				var reverseDictionary = {};
+
+				if ( mesh.morphTargetDictionary !== undefined ) {
+
+					for ( var key in mesh.morphTargetDictionary ) {
+
+						reverseDictionary[ mesh.morphTargetDictionary[ key ] ] = key;
+
+					}
+
+				}
+
+				for ( var i = 0; i < mesh.morphTargetInfluences.length; ++ i ) {
+
+					var target = {};
+
+					var warned = false;
+
+					for ( var attributeName in geometry.morphAttributes ) {
+
+						// glTF 2.0 morph supports only POSITION/NORMAL/TANGENT.
+						// Three.js doesn't support TANGENT yet.
+
+						if ( attributeName !== 'position' && attributeName !== 'normal' ) {
+
+							if ( ! warned ) {
+
+								console.warn( 'GLTFExporter: Only POSITION and NORMAL morph are supported.' );
+								warned = true;
+
+							}
+
+							continue;
+
+						}
+
+						var attribute = geometry.morphAttributes[ attributeName ][ i ];
+						var gltfAttributeName = attributeName.toUpperCase();
+
+						// Three.js morph attribute has absolute values while the one of glTF has relative values.
+						//
+						// glTF 2.0 Specification:
+						// https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#morph-targets
+
+						var baseAttribute = geometry.attributes[ attributeName ];
+
+						if ( cachedData.attributes.has( getUID( attribute ) ) ) {
+
+							target[ gltfAttributeName ] = cachedData.attributes.get( getUID( attribute ) );
+							continue;
+
+						}
+
+						// Clones attribute not to override
+						var relativeAttribute = attribute.clone();
+
+						if ( ! geometry.morphTargetsRelative ) {
+
+							for ( var j = 0, jl = attribute.count; j < jl; j ++ ) {
+
+								relativeAttribute.setXYZ(
+									j,
+									attribute.getX( j ) - baseAttribute.getX( j ),
+									attribute.getY( j ) - baseAttribute.getY( j ),
+									attribute.getZ( j ) - baseAttribute.getZ( j )
+								);
+
+							}
+
+						}
+
+						target[ gltfAttributeName ] = processAccessor( relativeAttribute, geometry );
+						cachedData.attributes.set( getUID( baseAttribute ), target[ gltfAttributeName ] );
+
+					}
+
+					targets.push( target );
+
+					weights.push( mesh.morphTargetInfluences[ i ] );
+					if ( mesh.morphTargetDictionary !== undefined ) targetNames.push( reverseDictionary[ i ] );
+
+				}
+
+				gltfMesh.weights = weights;
+
+				if ( targetNames.length > 0 ) {
+
+					gltfMesh.extras = {};
+					gltfMesh.extras.targetNames = targetNames;
+
+				}
+
+			}
+
+			var isMultiMaterial = Array.isArray( mesh.material );
+
+			if ( isMultiMaterial && geometry.groups.length === 0 ) return null;
+
+			var materials = isMultiMaterial ? mesh.material : [ mesh.material ];
+			var groups = isMultiMaterial ? geometry.groups : [ { materialIndex: 0, start: undefined, count: undefined } ];
+
+			for ( var i = 0, il = groups.length; i < il; i ++ ) {
+
+				var primitive = {
+					mode: mode,
+					attributes: attributes,
+				};
+
+				serializeUserData( geometry, primitive );
+
+				if ( targets.length > 0 ) primitive.targets = targets;
+
+				if ( geometry.index !== null ) {
+
+					var cacheKey = getUID( geometry.index );
+
+					if ( groups[ i ].start !== undefined || groups[ i ].count !== undefined ) {
+
+						cacheKey += ':' + groups[ i ].start + ':' + groups[ i ].count;
+
+					}
+
+					if ( cachedData.attributes.has( cacheKey ) ) {
+
+						primitive.indices = cachedData.attributes.get( cacheKey );
+
+					} else {
+
+						primitive.indices = processAccessor( geometry.index, geometry, groups[ i ].start, groups[ i ].count );
+						cachedData.attributes.set( cacheKey, primitive.indices );
+
+					}
+
+					if ( primitive.indices === null ) delete primitive.indices;
+
+				}
+
+				var material = processMaterial( materials[ groups[ i ].materialIndex ] );
+
+				if ( material !== null ) {
+
+					primitive.material = material;
+
+				}
+
+				primitives.push( primitive );
+
+			}
+
+			gltfMesh.primitives = primitives;
+
+			if ( ! outputJSON.meshes ) {
+
+				outputJSON.meshes = [];
+
+			}
+
+			outputJSON.meshes.push( gltfMesh );
+
+			var index = outputJSON.meshes.length - 1;
+			cachedData.meshes.set( meshCacheKey, index );
+
+			return index;
+
+		}
+
+		/**
+		 * Process camera
+		 * @param  {THREE.Camera} camera Camera to process
+		 * @return {Integer}      Index of the processed mesh in the "camera" array
+		 */
+		function processCamera( camera ) {
+
+			if ( ! outputJSON.cameras ) {
+
+				outputJSON.cameras = [];
+
+			}
+
+			var isOrtho = camera.isOrthographicCamera;
+
+			var gltfCamera = {
+
+				type: isOrtho ? 'orthographic' : 'perspective'
+
+			};
+
+			if ( isOrtho ) {
+
+				gltfCamera.orthographic = {
+
+					xmag: camera.right * 2,
+					ymag: camera.top * 2,
+					zfar: camera.far <= 0 ? 0.001 : camera.far,
+					znear: camera.near < 0 ? 0 : camera.near
+
+				};
+
+			} else {
+
+				gltfCamera.perspective = {
+
+					aspectRatio: camera.aspect,
+					yfov: THREE.MathUtils.degToRad( camera.fov ),
+					zfar: camera.far <= 0 ? 0.001 : camera.far,
+					znear: camera.near < 0 ? 0 : camera.near
+
+				};
+
+			}
+
+			if ( camera.name !== '' ) {
+
+				gltfCamera.name = camera.type;
+
+			}
+
+			outputJSON.cameras.push( gltfCamera );
+
+			return outputJSON.cameras.length - 1;
+
+		}
+
+		/**
+		 * Creates glTF animation entry from AnimationClip object.
+		 *
+		 * Status:
+		 * - Only properties listed in PATH_PROPERTIES may be animated.
+		 *
+		 * @param {THREE.AnimationClip} clip
+		 * @param {THREE.Object3D} root
+		 * @return {number}
+		 */
+		function processAnimation( clip, root ) {
+
+			if ( ! outputJSON.animations ) {
+
+				outputJSON.animations = [];
+
+			}
+
+			clip = THREE.GLTFExporter.Utils.mergeMorphTargetTracks( clip.clone(), root );
+
+			var tracks = clip.tracks;
+			var channels = [];
+			var samplers = [];
+
+			for ( var i = 0; i < tracks.length; ++ i ) {
+
+				var track = tracks[ i ];
+				var trackBinding = THREE.PropertyBinding.parseTrackName( track.name );
+				var trackNode = THREE.PropertyBinding.findNode( root, trackBinding.nodeName );
+				var trackProperty = PATH_PROPERTIES[ trackBinding.propertyName ];
+
+				if ( trackBinding.objectName === 'bones' ) {
+
+					if ( trackNode.isSkinnedMesh === true ) {
+
+						trackNode = trackNode.skeleton.getBoneByName( trackBinding.objectIndex );
+
+					} else {
+
+						trackNode = undefined;
+
+					}
+
+				}
+
+				if ( ! trackNode || ! trackProperty ) {
+
+					console.warn( 'THREE.GLTFExporter: Could not export animation track "%s".', track.name );
+					return null;
+
+				}
+
+				var inputItemSize = 1;
+				var outputItemSize = track.values.length / track.times.length;
+
+				if ( trackProperty === PATH_PROPERTIES.morphTargetInfluences ) {
+
+					outputItemSize /= trackNode.morphTargetInfluences.length;
+
+				}
+
+				var interpolation;
+
+				// @TODO export CubicInterpolant(InterpolateSmooth) as CUBICSPLINE
+
+				// Detecting glTF cubic spline interpolant by checking factory method's special property
+				// GLTFCubicSplineInterpolant is a custom interpolant and track doesn't return
+				// valid value from .getInterpolation().
+				if ( track.createInterpolant.isInterpolantFactoryMethodGLTFCubicSpline === true ) {
+
+					interpolation = 'CUBICSPLINE';
+
+					// itemSize of CUBICSPLINE keyframe is 9
+					// (VEC3 * 3: inTangent, splineVertex, and outTangent)
+					// but needs to be stored as VEC3 so dividing by 3 here.
+					outputItemSize /= 3;
+
+				} else if ( track.getInterpolation() === THREE.InterpolateDiscrete ) {
+
+					interpolation = 'STEP';
+
+				} else {
+
+					interpolation = 'LINEAR';
+
+				}
+
+				samplers.push( {
+
+					input: processAccessor( new THREE.BufferAttribute( track.times, inputItemSize ) ),
+					output: processAccessor( new THREE.BufferAttribute( track.values, outputItemSize ) ),
+					interpolation: interpolation
+
+				} );
+
+				channels.push( {
+
+					sampler: samplers.length - 1,
+					target: {
+						node: nodeMap.get( trackNode ),
+						path: trackProperty
+					}
+
+				} );
+
+			}
+
+			outputJSON.animations.push( {
+
+				name: clip.name || 'clip_' + outputJSON.animations.length,
+				samplers: samplers,
+				channels: channels
+
+			} );
+
+			return outputJSON.animations.length - 1;
+
+		}
+
+		function processSkin( object ) {
+
+			var node = outputJSON.nodes[ nodeMap.get( object ) ];
+
+			var skeleton = object.skeleton;
+
+			if ( skeleton === undefined ) return null;
+
+			var rootJoint = object.skeleton.bones[ 0 ];
+
+			if ( rootJoint === undefined ) return null;
+
+			var joints = [];
+			var inverseBindMatrices = new Float32Array( skeleton.bones.length * 16 );
+
+			for ( var i = 0; i < skeleton.bones.length; ++ i ) {
+
+				joints.push( nodeMap.get( skeleton.bones[ i ] ) );
+
+				skeleton.boneInverses[ i ].toArray( inverseBindMatrices, i * 16 );
+
+			}
+
+			if ( outputJSON.skins === undefined ) {
+
+				outputJSON.skins = [];
+
+			}
+
+			outputJSON.skins.push( {
+
+				inverseBindMatrices: processAccessor( new THREE.BufferAttribute( inverseBindMatrices, 16 ) ),
+				joints: joints,
+				skeleton: nodeMap.get( rootJoint )
+
+			} );
+
+			var skinIndex = node.skin = outputJSON.skins.length - 1;
+
+			return skinIndex;
+
+		}
+
+		function processLight( light ) {
+
+			var lightDef = {};
+
+			if ( light.name ) lightDef.name = light.name;
+
+			lightDef.color = light.color.toArray();
+
+			lightDef.intensity = light.intensity;
+
+			if ( light.isDirectionalLight ) {
+
+				lightDef.type = 'directional';
+
+			} else if ( light.isPointLight ) {
+
+				lightDef.type = 'point';
+				if ( light.distance > 0 ) lightDef.range = light.distance;
+
+			} else if ( light.isSpotLight ) {
+
+				lightDef.type = 'spot';
+				if ( light.distance > 0 ) lightDef.range = light.distance;
+				lightDef.spot = {};
+				lightDef.spot.innerConeAngle = ( light.penumbra - 1.0 ) * light.angle * - 1.0;
+				lightDef.spot.outerConeAngle = light.angle;
+
+			}
+
+			if ( light.decay !== undefined && light.decay !== 2 ) {
+
+				console.warn( 'THREE.GLTFExporter: Light decay may be lost. glTF is physically-based, '
+					+ 'and expects light.decay=2.' );
+
+			}
+
+			if ( light.target
+					&& ( light.target.parent !== light
+					 || light.target.position.x !== 0
+					 || light.target.position.y !== 0
+					 || light.target.position.z !== - 1 ) ) {
+
+				console.warn( 'THREE.GLTFExporter: Light direction may be lost. For best results, '
+					+ 'make light.target a child of the light with position 0,0,-1.' );
+
+			}
+
+			var lights = outputJSON.extensions[ 'KHR_lights_punctual' ].lights;
+			lights.push( lightDef );
+			return lights.length - 1;
+
+		}
+
+		/**
+		 * Process Object3D node
+		 * @param  {THREE.Object3D} node Object3D to processNode
+		 * @return {Integer}      Index of the node in the nodes list
+		 */
+		function processNode( object ) {
+
+			if ( ! outputJSON.nodes ) {
+
+				outputJSON.nodes = [];
+
+			}
+
+			var gltfNode = {};
+
+			if ( options.trs ) {
+
+				var rotation = object.quaternion.toArray();
+				var position = object.position.toArray();
+				var scale = object.scale.toArray();
+
+				if ( ! equalArray( rotation, [ 0, 0, 0, 1 ] ) ) {
+
+					gltfNode.rotation = rotation;
+
+				}
+
+				if ( ! equalArray( position, [ 0, 0, 0 ] ) ) {
+
+					gltfNode.translation = position;
+
+				}
+
+				if ( ! equalArray( scale, [ 1, 1, 1 ] ) ) {
+
+					gltfNode.scale = scale;
+
+				}
+
+			} else {
+
+				if ( object.matrixAutoUpdate ) {
+
+					object.updateMatrix();
+
+				}
+
+				if ( ! equalArray( object.matrix.elements, [ 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 ] ) ) {
+
+					gltfNode.matrix = object.matrix.elements;
+
+				}
+
+			}
+
+			// We don't export empty strings name because it represents no-name in Three.js.
+			if ( object.name !== '' ) {
+
+				gltfNode.name = String( object.name );
+
+			}
+
+			serializeUserData( object, gltfNode );
+
+			if ( object.isMesh || object.isLine || object.isPoints ) {
+
+				var mesh = processMesh( object );
+
+				if ( mesh !== null ) {
+
+					gltfNode.mesh = mesh;
+
+				}
+
+			} else if ( object.isCamera ) {
+
+				gltfNode.camera = processCamera( object );
+
+			} else if ( object.isDirectionalLight || object.isPointLight || object.isSpotLight ) {
+
+				if ( ! extensionsUsed[ 'KHR_lights_punctual' ] ) {
+
+					outputJSON.extensions = outputJSON.extensions || {};
+					outputJSON.extensions[ 'KHR_lights_punctual' ] = { lights: [] };
+					extensionsUsed[ 'KHR_lights_punctual' ] = true;
+
+				}
+
+				gltfNode.extensions = gltfNode.extensions || {};
+				gltfNode.extensions[ 'KHR_lights_punctual' ] = { light: processLight( object ) };
+
+			} else if ( object.isLight ) {
+
+				console.warn( 'THREE.GLTFExporter: Only directional, point, and spot lights are supported.', object );
+				return null;
+
+			}
+
+			if ( object.isSkinnedMesh ) {
+
+				skins.push( object );
+
+			}
+
+			if ( object.children.length > 0 ) {
+
+				var children = [];
+
+				for ( var i = 0, l = object.children.length; i < l; i ++ ) {
+
+					var child = object.children[ i ];
+
+					if ( child.visible || options.onlyVisible === false ) {
+
+						var node = processNode( child );
+
+						if ( node !== null ) {
+
+							children.push( node );
+
+						}
+
+					}
+
+				}
+
+				if ( children.length > 0 ) {
+
+					gltfNode.children = children;
+
+				}
+
+
+			}
+
+			outputJSON.nodes.push( gltfNode );
+
+			var nodeIndex = outputJSON.nodes.length - 1;
+			nodeMap.set( object, nodeIndex );
+
+			return nodeIndex;
+
+		}
+
+		/**
+		 * Process Scene
+		 * @param  {THREE.Scene} node Scene to process
+		 */
+		function processScene( scene ) {
+
+			if ( ! outputJSON.scenes ) {
+
+				outputJSON.scenes = [];
+				outputJSON.scene = 0;
+
+			}
+
+			var gltfScene = {};
+
+			if ( scene.name !== '' ) {
+
+				gltfScene.name = scene.name;
+
+			}
+
+			outputJSON.scenes.push( gltfScene );
+
+			var nodes = [];
+
+			for ( var i = 0, l = scene.children.length; i < l; i ++ ) {
+
+				var child = scene.children[ i ];
+
+				if ( child.visible || options.onlyVisible === false ) {
+
+					var node = processNode( child );
+
+					if ( node !== null ) {
+
+						nodes.push( node );
+
+					}
+
+				}
+
+			}
+
+			if ( nodes.length > 0 ) {
+
+				gltfScene.nodes = nodes;
+
+			}
+
+			serializeUserData( scene, gltfScene );
+
+		}
+
+		/**
+		 * Creates a THREE.Scene to hold a list of objects and parse it
+		 * @param  {Array} objects List of objects to process
+		 */
+		function processObjects( objects ) {
+
+			var scene = new THREE.Scene();
+			scene.name = 'AuxScene';
+
+			for ( var i = 0; i < objects.length; i ++ ) {
+
+				// We push directly to children instead of calling `add` to prevent
+				// modify the .parent and break its original scene and hierarchy
+				scene.children.push( objects[ i ] );
+
+			}
+
+			processScene( scene );
+
+		}
+
+		function processInput( input ) {
+
+			input = input instanceof Array ? input : [ input ];
+
+			var objectsWithoutScene = [];
+
+			for ( var i = 0; i < input.length; i ++ ) {
+
+				if ( input[ i ] instanceof THREE.Scene ) {
+
+					processScene( input[ i ] );
+
+				} else {
+
+					objectsWithoutScene.push( input[ i ] );
+
+				}
+
+			}
+
+			if ( objectsWithoutScene.length > 0 ) {
+
+				processObjects( objectsWithoutScene );
+
+			}
+
+			for ( var i = 0; i < skins.length; ++ i ) {
+
+				processSkin( skins[ i ] );
+
+			}
+
+			for ( var i = 0; i < options.animations.length; ++ i ) {
+
+				processAnimation( options.animations[ i ], input[ 0 ] );
+
+			}
+
+		}
+
+		processInput( input );
+
+		Promise.all( pending ).then( function () {
+
+			// Merge buffers.
+			var blob = new Blob( buffers, { type: 'application/octet-stream' } );
+
+			// Declare extensions.
+			var extensionsUsedList = Object.keys( extensionsUsed );
+			if ( extensionsUsedList.length > 0 ) outputJSON.extensionsUsed = extensionsUsedList;
+
+			// Update bytelength of the single buffer.
+			if ( outputJSON.buffers && outputJSON.buffers.length > 0 ) outputJSON.buffers[ 0 ].byteLength = blob.size;
+
+			if ( options.binary === true ) {
+
+				// https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/README.md#glb-file-format-specification
+
+				var GLB_HEADER_BYTES = 12;
+				var GLB_HEADER_MAGIC = 0x46546C67;
+				var GLB_VERSION = 2;
+
+				var GLB_CHUNK_PREFIX_BYTES = 8;
+				var GLB_CHUNK_TYPE_JSON = 0x4E4F534A;
+				var GLB_CHUNK_TYPE_BIN = 0x004E4942;
+
+				var reader = new window.FileReader();
+				reader.readAsArrayBuffer( blob );
+				reader.onloadend = function () {
+
+					// Binary chunk.
+					var binaryChunk = getPaddedArrayBuffer( reader.result );
+					var binaryChunkPrefix = new DataView( new ArrayBuffer( GLB_CHUNK_PREFIX_BYTES ) );
+					binaryChunkPrefix.setUint32( 0, binaryChunk.byteLength, true );
+					binaryChunkPrefix.setUint32( 4, GLB_CHUNK_TYPE_BIN, true );
+
+					// JSON chunk.
+					var jsonChunk = getPaddedArrayBuffer( stringToArrayBuffer( JSON.stringify( outputJSON ) ), 0x20 );
+					var jsonChunkPrefix = new DataView( new ArrayBuffer( GLB_CHUNK_PREFIX_BYTES ) );
+					jsonChunkPrefix.setUint32( 0, jsonChunk.byteLength, true );
+					jsonChunkPrefix.setUint32( 4, GLB_CHUNK_TYPE_JSON, true );
+
+					// GLB header.
+					var header = new ArrayBuffer( GLB_HEADER_BYTES );
+					var headerView = new DataView( header );
+					headerView.setUint32( 0, GLB_HEADER_MAGIC, true );
+					headerView.setUint32( 4, GLB_VERSION, true );
+					var totalByteLength = GLB_HEADER_BYTES
+						+ jsonChunkPrefix.byteLength + jsonChunk.byteLength
+						+ binaryChunkPrefix.byteLength + binaryChunk.byteLength;
+					headerView.setUint32( 8, totalByteLength, true );
+
+					var glbBlob = new Blob( [
+						header,
+						jsonChunkPrefix,
+						jsonChunk,
+						binaryChunkPrefix,
+						binaryChunk
+					], { type: 'application/octet-stream' } );
+
+					var glbReader = new window.FileReader();
+					glbReader.readAsArrayBuffer( glbBlob );
+					glbReader.onloadend = function () {
+
+						onDone( glbReader.result );
+
+					};
+
+				};
+
+			} else {
+
+				if ( outputJSON.buffers && outputJSON.buffers.length > 0 ) {
+
+					var reader = new window.FileReader();
+					reader.readAsDataURL( blob );
+					reader.onloadend = function () {
+
+						var base64data = reader.result;
+						outputJSON.buffers[ 0 ].uri = base64data;
+						onDone( outputJSON );
+
+					};
+
+				} else {
+
+					onDone( outputJSON );
+
+				}
+
+			}
+
+		} );
+
+	}
+
+};
+
+THREE.GLTFExporter.Utils = {
+
+	insertKeyframe: function ( track, time ) {
+
+		var tolerance = 0.001; // 1ms
+		var valueSize = track.getValueSize();
+
+		var times = new track.TimeBufferType( track.times.length + 1 );
+		var values = new track.ValueBufferType( track.values.length + valueSize );
+		var interpolant = track.createInterpolant( new track.ValueBufferType( valueSize ) );
+
+		var index;
+
+		if ( track.times.length === 0 ) {
+
+			times[ 0 ] = time;
+
+			for ( var i = 0; i < valueSize; i ++ ) {
+
+				values[ i ] = 0;
+
+			}
+
+			index = 0;
+
+		} else if ( time < track.times[ 0 ] ) {
+
+			if ( Math.abs( track.times[ 0 ] - time ) < tolerance ) return 0;
+
+			times[ 0 ] = time;
+			times.set( track.times, 1 );
+
+			values.set( interpolant.evaluate( time ), 0 );
+			values.set( track.values, valueSize );
+
+			index = 0;
+
+		} else if ( time > track.times[ track.times.length - 1 ] ) {
+
+			if ( Math.abs( track.times[ track.times.length - 1 ] - time ) < tolerance ) {
+
+				return track.times.length - 1;
+
+			}
+
+			times[ times.length - 1 ] = time;
+			times.set( track.times, 0 );
+
+			values.set( track.values, 0 );
+			values.set( interpolant.evaluate( time ), track.values.length );
+
+			index = times.length - 1;
+
+		} else {
+
+			for ( var i = 0; i < track.times.length; i ++ ) {
+
+				if ( Math.abs( track.times[ i ] - time ) < tolerance ) return i;
+
+				if ( track.times[ i ] < time && track.times[ i + 1 ] > time ) {
+
+					times.set( track.times.slice( 0, i + 1 ), 0 );
+					times[ i + 1 ] = time;
+					times.set( track.times.slice( i + 1 ), i + 2 );
+
+					values.set( track.values.slice( 0, ( i + 1 ) * valueSize ), 0 );
+					values.set( interpolant.evaluate( time ), ( i + 1 ) * valueSize );
+					values.set( track.values.slice( ( i + 1 ) * valueSize ), ( i + 2 ) * valueSize );
+
+					index = i + 1;
+
+					break;
+
+				}
+
+			}
+
+		}
+
+		track.times = times;
+		track.values = values;
+
+		return index;
+
+	},
+
+	mergeMorphTargetTracks: function ( clip, root ) {
+
+		var tracks = [];
+		var mergedTracks = {};
+		var sourceTracks = clip.tracks;
+
+		for ( var i = 0; i < sourceTracks.length; ++ i ) {
+
+			var sourceTrack = sourceTracks[ i ];
+			var sourceTrackBinding = THREE.PropertyBinding.parseTrackName( sourceTrack.name );
+			var sourceTrackNode = THREE.PropertyBinding.findNode( root, sourceTrackBinding.nodeName );
+
+			if ( sourceTrackBinding.propertyName !== 'morphTargetInfluences' || sourceTrackBinding.propertyIndex === undefined ) {
+
+				// Tracks that don't affect morph targets, or that affect all morph targets together, can be left as-is.
+				tracks.push( sourceTrack );
+				continue;
+
+			}
+
+			if ( sourceTrack.createInterpolant !== sourceTrack.InterpolantFactoryMethodDiscrete
+				&& sourceTrack.createInterpolant !== sourceTrack.InterpolantFactoryMethodLinear ) {
+
+				if ( sourceTrack.createInterpolant.isInterpolantFactoryMethodGLTFCubicSpline ) {
+
+					// This should never happen, because glTF morph target animations
+					// affect all targets already.
+					throw new Error( 'THREE.GLTFExporter: Cannot merge tracks with glTF CUBICSPLINE interpolation.' );
+
+				}
+
+				console.warn( 'THREE.GLTFExporter: Morph target interpolation mode not yet supported. Using LINEAR instead.' );
+
+				sourceTrack = sourceTrack.clone();
+				sourceTrack.setInterpolation( THREE.InterpolateLinear );
+
+			}
+
+			var targetCount = sourceTrackNode.morphTargetInfluences.length;
+			var targetIndex = sourceTrackNode.morphTargetDictionary[ sourceTrackBinding.propertyIndex ];
+
+			if ( targetIndex === undefined ) {
+
+				throw new Error( 'THREE.GLTFExporter: Morph target name not found: ' + sourceTrackBinding.propertyIndex );
+
+			}
+
+			var mergedTrack;
+
+			// If this is the first time we've seen this object, create a new
+			// track to store merged keyframe data for each morph target.
+			if ( mergedTracks[ sourceTrackNode.uuid ] === undefined ) {
+
+				mergedTrack = sourceTrack.clone();
+
+				var values = new mergedTrack.ValueBufferType( targetCount * mergedTrack.times.length );
+
+				for ( var j = 0; j < mergedTrack.times.length; j ++ ) {
+
+					values[ j * targetCount + targetIndex ] = mergedTrack.values[ j ];
+
+				}
+
+				// We need to take into consideration the intended target node
+				// of our original un-merged morphTarget animation.
+				mergedTrack.name = sourceTrackBinding.nodeName + '.morphTargetInfluences';
+				mergedTrack.values = values;
+
+				mergedTracks[ sourceTrackNode.uuid ] = mergedTrack;
+				tracks.push( mergedTrack );
+
+				continue;
+
+			}
+
+			var sourceInterpolant = sourceTrack.createInterpolant( new sourceTrack.ValueBufferType( 1 ) );
+
+			mergedTrack = mergedTracks[ sourceTrackNode.uuid ];
+
+			// For every existing keyframe of the merged track, write a (possibly
+			// interpolated) value from the source track.
+			for ( var j = 0; j < mergedTrack.times.length; j ++ ) {
+
+				mergedTrack.values[ j * targetCount + targetIndex ] = sourceInterpolant.evaluate( mergedTrack.times[ j ] );
+
+			}
+
+			// For every existing keyframe of the source track, write a (possibly
+			// new) keyframe to the merged track. Values from the previous loop may
+			// be written again, but keyframes are de-duplicated.
+			for ( var j = 0; j < sourceTrack.times.length; j ++ ) {
+
+				var keyframeIndex = this.insertKeyframe( mergedTrack, sourceTrack.times[ j ] );
+				mergedTrack.values[ keyframeIndex * targetCount + targetIndex ] = sourceTrack.values[ j ];
+
+			}
+
+		}
+
+		clip.tracks = tracks;
+
+		return clip;
+
+	}
+
+};
